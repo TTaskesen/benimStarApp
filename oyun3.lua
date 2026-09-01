@@ -1,8 +1,11 @@
 local sahne_degis = require("composer")
 local oyunKayit = require("oyun_kayit")
 local safeArea = require("safe_area")
+local oyunAyar = require("oyun_ayar")
+local oyunMeta = require("oyun_meta")
 
 local scene = sahne_degis.newScene()
+local bolumGecisiAktif = false
 
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
@@ -10,8 +13,10 @@ local scene = sahne_degis.newScene()
 -- -----------------------------------------------------------------------------------
 
 local function gotoMenu()
+    if bolumGecisiAktif then return true end
     oyunKayit.saveCurrent()
     sahne_degis.gotoScene("menu", { time = 800, effect = "crossFade" })
+    return true
 end
 
 local fizikler = require("physics")
@@ -63,6 +68,7 @@ local kayilanMesafe = 0
 local oncekiGapYonu = "sag"
 local meteorAraligi = 650
 local sonMeteorZamani = 0
+local ayar = oyunAyar.level(3)
 
 local oyunBittiZamanlayici
 local tamirZamanlayici
@@ -70,7 +76,20 @@ local bolumGecisZamanlayici
 local aktif = true
 local gecilenKanal = 0
 local yapilanVurus = 0
-local hedefVurus = 100
+local hedefVurus = ayar.hedef
+local atisSayisi = 0
+local baslangicCan = 3
+local dalgaNo = 1
+local dalgaVurus = 0
+local combo = 0
+local maxCombo = 1
+local sonIsabetZamani = 0
+local comboPenceresi = 1.5
+local geriButon
+local geriMetin
+local atesMetni
+local atesDolumZamanlayici
+local ertelenmisHasarTimer
 local oncekiKareZamani
 local sesAcik = true
 local bolumTamamlandi
@@ -87,7 +106,28 @@ local LAZER_KATEGORI = 8
 local function metniGuncelle()
     canMetin.text = "Canlar: " .. canlar
     skorMetin.text = "Skorunuz: " .. skor
-    bolumMetin.text = "Bölüm 3  •  Meteor: " .. yapilanVurus .. "/" .. hedefVurus
+    bolumMetin.text = "Bölüm 3 • Meteorları vur,\nduvarlardan kaç. • Dalga " .. dalgaNo .. "/" .. ayar.dalgaSayisi .. " • " .. dalgaVurus .. "/" .. ayar.dalgaBasina .. " • " .. combo .. "x"
+end
+
+local function dalgaGuncelle()
+    dalgaNo = math.min(ayar.dalgaSayisi, math.floor(yapilanVurus / ayar.dalgaBasina) + 1)
+    dalgaVurus = yapilanVurus - (dalgaNo - 1) * ayar.dalgaBasina
+    if yapilanVurus > 0 and dalgaVurus == 0 then dalgaVurus = ayar.dalgaBasina end
+end
+
+local function komboSifirla()
+    combo = 0
+    metniGuncelle()
+end
+
+local function komboGuncelle()
+    local simdi = system.getTimer() / 1000
+    if simdi - sonIsabetZamani > comboPenceresi then combo = 0 end
+    combo = combo + 1
+    maxCombo = math.max(maxCombo, combo)
+    sonIsabetZamani = simdi
+    if combo >= 3 then oyunMeta.unlock("combo_3") end
+    return math.min(3, math.floor((combo - 1) / 3) + 1)
 end
 
 --zoomEven kırpmasında görünür ekran sınırları
@@ -168,12 +208,19 @@ local function kanalSegmentiOlustur()
 end
 
 local function lazeriAtesle()
-    if not aktif or not gemi or not gemi.parent then return true end
+    if not aktif or bolumGecisiAktif or not gemi or not gemi.parent then return true end
     local simdi = system.getTimer()
     if (simdi - sonLazerZamani) < lazerSoGuk then
-        return
+        return true
     end
     sonLazerZamani = simdi
+    atisSayisi = atisSayisi + 1
+    if atesButonu then atesButonu.alpha = 0.45 end
+    if atesDolumZamanlayici then timer.cancel(atesDolumZamanlayici) end
+    atesDolumZamanlayici = timer.performWithDelay(lazerSoGuk, function()
+        if atesButonu and atesButonu.parent then atesButonu.alpha = 1 end
+        atesDolumZamanlayici = nil
+    end)
 
     --lazer sesi
     audio.play(lazerAtesSesi, { channel = 2 })
@@ -205,6 +252,7 @@ end
 local function hareketGemi(event)
     local gemi = event.target
     local faz = event.phase
+    if bolumGecisiAktif then return true end
     if ("began" == faz) then
         --dokunma odaklanması
         display.currentStage:setFocus(gemi)
@@ -234,11 +282,14 @@ local function hareketGemi(event)
 end
 
 local function oyunDongu(event)
-    if not aktif then return end
+    if not aktif or bolumGecisiAktif then return end
     local simdi = event.time or system.getTimer()
     local dt = oncekiKareZamani and (simdi - oncekiKareZamani) / 1000 or (1 / 60)
     oncekiKareZamani = simdi
     dt = math.max(0.001, math.min(dt, 0.05))
+    if combo > 0 and simdi / 1000 - sonIsabetZamani > comboPenceresi then
+        komboSifirla()
+    end
 
     if simdi - sonMeteorZamani >= meteorAraligi then
         meteorOlustur()
@@ -302,14 +353,21 @@ local function oyun3Bitti()
     if not aktif then return end
     aktif = false
     oyunKayit.clear()
-    sahne_degis.setVariable("finalSkor", skor)
-    sahne_degis.gotoScene("yuksek_skor", { time = 800, effect = "crossFade" })
+    sahne_degis.setVariable("sonucVeri", { victory = false, score = skor, level = 3, wave = math.max(1, dalgaNo - 1), meteor = yapilanVurus, accuracy = atisSayisi > 0 and math.min(100, math.floor(yapilanVurus / atisSayisi * 100)) or 0, lostLives = baslangicCan - canlar, maxCombo = maxCombo })
+    sahne_degis.gotoScene("sonuc", { time = 800, effect = "crossFade" })
 end
 
 bolumTamamlandi = function()
     if not aktif then return end
     aktif = false
+    bolumGecisiAktif = true
+    if geriButon then geriButon.isHitTestable = false; geriButon.alpha = 0.45 end
+    if geriMetin then geriMetin.alpha = 0.45 end
+    if atesButonu then atesButonu.isHitTestable = false; atesButonu.alpha = 0.45 end
+    if atesMetni then atesMetni.alpha = 0.45 end
     bolumMetin.text = "Bölüm tamamlandı!"
+    oyunMeta.markLevel4()
+    oyunMeta.markWaveCompleted(canlar == baslangicCan)
     local kayit = { version = 1, valid = true, score = skor, level = 4, lives = 5, progress = 0, soundEnabled = sesAcik }
     oyunKayit.save(kayit)
     bolumGecisZamanlayici = timer.performWithDelay(1200, function()
@@ -327,6 +385,7 @@ local function gemiHasar()
 
     --canı güncelle
     canlar = canlar - 1
+    komboSifirla()
     canMetin.text = "Canlar: " .. canlar
     if canlar > 0 then oyunKayit.saveCurrent() end
     if (canlar <= 0) then
@@ -336,8 +395,9 @@ local function gemiHasar()
         gemi.alpha = 0.3
         -- isBodyActive çarpışma olayı sırasında (dünya kilitli) set edilemez,
         -- bu yüzden bir sonraki kareye ertelenir
-        timer.performWithDelay(0, function()
-            if gemi then gemi.isBodyActive = false end
+        ertelenmisHasarTimer = timer.performWithDelay(0, function()
+            if gemi and gemi.parent then gemi.isBodyActive = false end
+            ertelenmisHasarTimer = nil
         end)
         tamirZamanlayici = timer.performWithDelay(1200, gemiTamir)
     end
@@ -363,9 +423,18 @@ local function carpisma(event)
             end
         end
         audio.play(patlamaSesi, { channel = 3 })
-        skor = skor + 100
+        local carpani = komboGuncelle()
+        local puan = 100 * carpani
+        skor = skor + puan
         yapilanVurus = yapilanVurus + 1
+        dalgaGuncelle()
         metniGuncelle()
+        if dalgaVurus == ayar.dalgaBasina and yapilanVurus < hedefVurus then
+            bolumMetin.text = "Dalga " .. dalgaNo .. " tamamlandı!"
+            oyunMeta.markWaveCompleted(canlar == baslangicCan)
+        end
+        oyunMeta.record("meteor", 1)
+        oyunMeta.record("score", puan)
         oyunKayit.saveCurrent()
         if yapilanVurus >= hedefVurus then bolumTamamlandi() end
     elseif ((isim1 == "gemi" and isim2 == "asteroid") or (isim1 == "asteroid" and isim2 == "gemi")) then
@@ -412,9 +481,20 @@ function scene:create(event)
         sesAcik = oyunKayit.load().soundEnabled
     end
     if type(devamKaydi) ~= "table" or devamKaydi.level ~= 3 then yapilanVurus = 0 end
+    ayar = oyunAyar.level(3)
+    hedefVurus = ayar.hedef
+    sonLazerZamani = 0
+    atisSayisi = 0
+    combo = 0
+    maxCombo = 1
+    sonIsabetZamani = 0
+    bolumGecisiAktif = false
+    dalgaGuncelle()
+    baslangicCan = canlar
     kanalTable = {}
     asteroidTable = {}
     toplamKanal = 0
+    gecilenKanal = 0
     kayilanMesafe = 0
     oncekiGapYonu = "sag"
     sonMeteorZamani = 0
@@ -455,16 +535,16 @@ function scene:create(event)
     skorMetin = display.newText(uiGroup, "", left + width - 12, top + 48, native.systemFont, 22)
     skorMetin.anchorX = 1
     bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 92, native.systemFont, 20)
-    local geriButon = display.newRoundedRect(uiGroup, left + 58, top + 92, 100, 52, 14)
+    geriButon = display.newRoundedRect(uiGroup, left + 58, top + 92, 100, 52, 14)
     geriButon:setFillColor(0.16, 0.24, 0.38, 0.92)
     geriButon:addEventListener("tap", gotoMenu)
-    local geriMetin = display.newText(uiGroup, "Geri", geriButon.x, geriButon.y, native.systemFont, 24)
+    geriMetin = display.newText(uiGroup, "Geri", geriButon.x, geriButon.y, native.systemFont, 24)
     geriMetin:addEventListener("tap", gotoMenu)
     atesButonu = display.newRoundedRect(uiGroup, left + width - 78, top + height - 70, 132, 64, 16)
     atesButonu:setFillColor(0.55, 0.16, 0.18, 0.95)
     atesButonu:addEventListener("tap", lazeriAtesle)
-    local atesMetin = display.newText(uiGroup, "ATEŞ", atesButonu.x, atesButonu.y, native.systemFont, 26)
-    atesMetin:addEventListener("tap", lazeriAtesle)
+    atesMetni = display.newText(uiGroup, "ATEŞ", atesButonu.x, atesButonu.y, native.systemFont, 26)
+    atesMetni:addEventListener("tap", lazeriAtesle)
 
     metniGuncelle()
 
@@ -507,6 +587,8 @@ function scene:hide(event)
         end
         display.currentStage:setFocus(nil)
         if bolumGecisZamanlayici then timer.cancel(bolumGecisZamanlayici); bolumGecisZamanlayici = nil end
+        if atesDolumZamanlayici then timer.cancel(atesDolumZamanlayici); atesDolumZamanlayici = nil end
+        if ertelenmisHasarTimer then timer.cancel(ertelenmisHasarTimer); ertelenmisHasarTimer = nil end
     elseif (phase == "did") then
         Runtime:removeEventListener("collision", carpisma)
         fizikler.pause()
@@ -528,6 +610,8 @@ function scene:destroy(event)
     if patlamaSesi then audio.dispose(patlamaSesi); patlamaSesi = nil end
     if lazerAtesSesi then audio.dispose(lazerAtesSesi); lazerAtesSesi = nil end
     if muzikYukleme then audio.dispose(muzikYukleme); muzikYukleme = nil end
+    if atesDolumZamanlayici then timer.cancel(atesDolumZamanlayici); atesDolumZamanlayici = nil end
+    if ertelenmisHasarTimer then timer.cancel(ertelenmisHasarTimer); ertelenmisHasarTimer = nil end
 end
 
 -- -----------------------------------------------------------------------------------

@@ -120,6 +120,7 @@ function M.clear()
     kayit.score = 0
     kayit.level = 1
     kayit.lives = 3
+    kayit.progress = 0
     return M.save(kayit)
 end
 

@@ -1,5 +1,6 @@
 local sahne_degis = require("composer")
 local oyunKayit = require("oyun_kayit")
+local oyunMeta = require("oyun_meta")
 local safeArea = require("safe_area")
 
 local scene = sahne_degis.newScene()
@@ -69,6 +70,18 @@ local function destekVeIletisim()
     return true
 end
 
+local function nasilOynanir()
+    oyunMeta.setTutorialSeen(false)
+    sahne_degis.setVariable("devamKaydi", nil)
+    sahne_degis.gotoScene("oyun", { time = 500, effect = "crossFade" })
+    return true
+end
+
+local function basarimlariAc()
+    sahne_degis.gotoScene("basarimlar", { time = 500, effect = "crossFade" })
+    return true
+end
+
 function scene:create(event)
     local sceneGroup = self.view
     local left, top, width, height = safeArea.bounds()
@@ -86,19 +99,23 @@ function scene:create(event)
     local logo = display.newImageRect(sceneGroup, "benimStarApp-logo.png", logoSize, logoSize)
     logo.x = centerX
     logo.y = title.y + title.height * 0.5 + logoSize * 0.5 + 22
+    local subtitle = display.newText(sceneGroup, "Meteorları vur • Duvarlardan kaç", centerX, title.y + title.height * 0.5 + 8, native.systemFont, 17)
+    subtitle:setFillColor(0.68, 0.82, 1)
 
     -- Alt düğmelerin güvenli alanda kalması için ilk düğmeyi toplam menü
     -- yüksekliğine göre sınırla. Bu, kısa ekranlarda destek bağlantılarının
     -- ekran dışına taşmasını önler.
-    local sonDugmeOfseti = 410
+    local sonDugmeOfseti = 476
     local maxFirstY = top + height - 32 - 64 * 0.5 - sonDugmeOfseti
-    local firstY = math.min(top + math.min(520, height * 0.50), maxFirstY)
+    local firstY = math.min(top + math.min(480, height * 0.43), maxFirstY)
     makeButton(sceneGroup, "Yeni Oyun", firstY, yeniOyun)
-    devamButonu, devamButonMetni = makeButton(sceneGroup, "Devam Et", firstY + 82, devamEt)
-    makeButton(sceneGroup, "Yüksek Skor", firstY + 164, gotoYuksekSkor)
-    local _, soundText = makeButton(sceneGroup, "Ses: Açık", firstY + 246, sesiDegistir)
-    makeButton(sceneGroup, "Gizlilik Politikası", firstY + 328, gizlilikPolitikasi)
-    makeButton(sceneGroup, "Destek / İletişim", firstY + 410, destekVeIletisim)
+    devamButonu, devamButonMetni = makeButton(sceneGroup, "Devam Et", firstY + 68, devamEt)
+    makeButton(sceneGroup, "Yüksek Skor", firstY + 136, gotoYuksekSkor)
+    local _, soundText = makeButton(sceneGroup, "Ses: Açık", firstY + 204, sesiDegistir)
+    makeButton(sceneGroup, "Nasıl Oynanır", firstY + 272, nasilOynanir)
+    makeButton(sceneGroup, "Başarımlar", firstY + 340, basarimlariAc)
+    makeButton(sceneGroup, "Gizlilik Politikası", firstY + 408, gizlilikPolitikasi)
+    makeButton(sceneGroup, "Destek / İletişim", firstY + 476, destekVeIletisim)
     sesMetni = soundText
     menuSesi = audio.loadStream("audio/Escape_Looping.wav")
 end
