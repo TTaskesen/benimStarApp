@@ -1,138 +1,122 @@
 local sahne_degis = require("composer")
+local oyunKayit = require("oyun_kayit")
+local safeArea = require("safe_area")
 
 local scene = sahne_degis.newScene()
+local menuSesi
+local sesAcik = true
+local sesMetni
+local devamButonu
+local devamButonMetni
 
--- -----------------------------------------------------------------------------------
--- Code outside of the scene event functions below will only be executed ONCE unless
--- the scene is removed entirely (not recycled) via "composer.removeScene()"
--- -----------------------------------------------------------------------------------
-
-
-local function gotoOyun2()
-	sahne_degis.gotoScene("oyun2", { time = 800, effect = "crossFade" })
+local function makeButton(group, label, y, handler)
+    local left, _, width = safeArea.bounds()
+    local button = display.newRoundedRect(group, left + width * 0.5, y, math.min(360, width - 32), 64, 16)
+    button:setFillColor(0.16, 0.24, 0.38, 0.92)
+    button.strokeWidth = 2
+    button:setStrokeColor(0.45, 0.65, 0.95, 0.9)
+    local text = display.newText(group, label, button.x, button.y, native.systemFont, 30)
+    text:setFillColor(0.85, 0.92, 1)
+    button:addEventListener("tap", handler)
+    text:addEventListener("tap", handler)
+    return button, text
 end
 
-local function gotoOyun()
-	sahne_degis.gotoScene("oyun", { time = 800, effect = "crossFade" })
+local function yeniOyun()
+    oyunKayit.clear()
+    sahne_degis.setVariable("devamKaydi", nil)
+    sahne_degis.gotoScene("oyun", { time = 500, effect = "crossFade" })
+    return true
+end
+
+local function devamEt()
+    local kayit = oyunKayit.load()
+    if not kayit.valid then return true end
+    sahne_degis.setVariable("devamKaydi", kayit)
+    local sahne = kayit.level == 1 and "oyun" or ("oyun" .. tostring(kayit.level))
+    sahne_degis.gotoScene(sahne, { time = 500, effect = "crossFade" })
+    return true
 end
 
 local function gotoYuksekSkor()
-	sahne_degis.gotoScene("yuksek_skor", { time = 800, effect = "crossFade" })
-end
-
---menu sesi yükleme
-local menuSesi
-local basla_buton
-local ayar
-local sesAcik = true
-
-local function baslaButonuBagla()
-	if basla_buton then
-		basla_buton:removeEventListener("tap", gotoOyun2)
-		basla_buton:removeEventListener("tap", gotoOyun)
-		if oyunBitti then
-			basla_buton:addEventListener("tap", gotoOyun2)
-		else
-			basla_buton:addEventListener("tap", gotoOyun)
-		end
-	end
+    sahne_degis.gotoScene("yuksek_skor", { time = 500, effect = "crossFade" })
+    return true
 end
 
 local function sesiDegistir()
-	sesAcik = not sesAcik
-	local seviye = 0
-	if sesAcik then
-		seviye = 0.5
-	end
-	audio.setVolume(seviye, { channel = 1 })
-	audio.setVolume(seviye, { channel = 2 })
-	audio.setVolume(seviye, { channel = 3 })
-	if ayar then
-		if sesAcik then
-			ayar.text = "Ayarlar"
-		else
-			ayar.text = "Ses Kapalı"
-		end
-	end
+    sesAcik = not sesAcik
+    local seviye = sesAcik and 0.5 or 0
+    audio.setVolume(seviye, { channel = 1 })
+    audio.setVolume(seviye, { channel = 2 })
+    audio.setVolume(seviye, { channel = 3 })
+    sesMetni.text = sesAcik and "Ses: Açık" or "Ses: Kapalı"
+    local kayit = oyunKayit.load()
+    kayit.soundEnabled = sesAcik
+    oyunKayit.save(kayit)
+    return true
 end
 
-
--- -----------------------------------------------------------------------------------
--- Scene event functions
--- -----------------------------------------------------------------------------------
-
--- create()
 function scene:create(event)
-	local sceneGroup = self.view
-	-- Code here runs when the scene is first created but has not yet appeared on screen
-	local arkaPlan = display.newImageRect(sceneGroup, "background.png", 800, 1400)
-	arkaPlan.x = display.contentCenterX
-	arkaPlan.y = display.contentCenterY
+    local sceneGroup = self.view
+    local left, top, width, height = safeArea.bounds()
+    local centerX = left + width * 0.5
+    local arkaPlan = display.newImageRect(sceneGroup, "background.png", 800, 1400)
+    arkaPlan.x = display.contentCenterX
+    arkaPlan.y = display.contentCenterY
 
-	local title = display.newImageRect(sceneGroup, "title.png", 500, 80)
-	title.x = display.contentCenterX
-	title.y = 200
+    local titleWidth = math.min(500, width - 32)
+    local title = display.newImageRect(sceneGroup, "title.png", titleWidth, 80 * titleWidth / 500)
+    title.x = centerX
+    title.y = top + 150
 
-	basla_buton = display.newText(sceneGroup, "Başla", display.contentCenterX, 700, native.systemFont, 44)
-	basla_buton:setFillColor(0.82, 0.86, 1)
+    local logoSize = math.min(180, width * 0.42, height * 0.18)
+    local logo = display.newImageRect(sceneGroup, "benimStarApp-logo.png", logoSize, logoSize)
+    logo.x = centerX
+    logo.y = title.y + title.height * 0.5 + logoSize * 0.5 + 22
 
-	local yuksek_skor_buton = display.newText(sceneGroup, "Yüksek Skor", display.contentCenterX, 810, native.systemFont,
-		44)
-	yuksek_skor_buton:setFillColor(0.75, 1, 1)
-
-	ayar = display.newText(sceneGroup, "Ayarlar", display.contentCenterX, 900, native.systemFont,
-		44)
-	ayar:setFillColor(0.75, 1, 1)
-	ayar:addEventListener("tap", sesiDegistir)
-
-	yuksek_skor_buton:addEventListener("tap", gotoYuksekSkor)
-
-	menuSesi = audio.loadStream("audio/Escape_Looping.wav")
+    local firstY = top + math.min(560, height * 0.57)
+    makeButton(sceneGroup, "Yeni Oyun", firstY, yeniOyun)
+    devamButonu, devamButonMetni = makeButton(sceneGroup, "Devam Et", firstY + 82, devamEt)
+    makeButton(sceneGroup, "Yüksek Skor", firstY + 164, gotoYuksekSkor)
+    local _, soundText = makeButton(sceneGroup, "Ses: Açık", firstY + 246, sesiDegistir)
+    sesMetni = soundText
+    menuSesi = audio.loadStream("audio/Escape_Looping.wav")
 end
 
--- show()
 function scene:show(event)
-	local sceneGroup = self.view
-	local phase = event.phase
-
-	if (phase == "will") then
-		-- Code here runs when the scene is still off screen (but is about to come on screen)
-		baslaButonuBagla()
-	elseif (phase == "did") then
-		-- Code here runs when the scene is entirely on screen
-		--start müzik
-		audio.play(menuSesi, { channel = 1, loops = -1 })
-	end
+    if event.phase == "will" then
+        local kayit = oyunKayit.load()
+        sesAcik = kayit.soundEnabled
+        sesMetni.text = sesAcik and "Ses: Açık" or "Ses: Kapalı"
+        devamButonu.isVisible = kayit.valid
+        devamButonu.isHitTestable = kayit.valid
+        devamButonMetni.isVisible = kayit.valid
+    elseif event.phase == "did" then
+        local seviye = sesAcik and 0.5 or 0
+        audio.setVolume(seviye, { channel = 1 })
+        audio.setVolume(seviye, { channel = 2 })
+        audio.setVolume(seviye, { channel = 3 })
+        audio.play(menuSesi, { channel = 1, loops = -1 })
+    end
 end
 
--- hide()
 function scene:hide(event)
-	local sceneGroup = self.view
-	local phase = event.phase
-
-	if (phase == "will") then
-		-- Code here runs when the scene is on screen (but is about to go off screen)
-	elseif (phase == "did") then
-		-- Code here runs immediately after the scene goes entirely off screen
-		audio.stop(1)
-	end
+    if event.phase == "did" then
+        audio.stop(1)
+    end
 end
 
--- destroy()
 function scene:destroy(event)
-	local sceneGroup = self.view
-	-- Code here runs prior to the removal of scene's view
-
-	audio.dispose(menuSesi)
+    audio.stop(1)
+    if menuSesi then
+        audio.dispose(menuSesi)
+        menuSesi = nil
+    end
 end
 
--- -----------------------------------------------------------------------------------
--- Scene event function listeners
--- -----------------------------------------------------------------------------------
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
 scene:addEventListener("hide", scene)
 scene:addEventListener("destroy", scene)
--- -----------------------------------------------------------------------------------
 
 return scene

@@ -1,4 +1,6 @@
 local sahne_degis = require("composer")
+local oyunKayit = require("oyun_kayit")
+local safeArea = require("safe_area")
 
 local scene = sahne_degis.newScene()
 
@@ -8,6 +10,7 @@ local scene = sahne_degis.newScene()
 -- -----------------------------------------------------------------------------------
 
 local function gotoMenu()
+    oyunKayit.saveCurrent()
     sahne_degis.gotoScene("menu", { time = 800, effect = "crossFade" })
 end
 
@@ -65,6 +68,13 @@ local oyunBittiZamanlayici
 local tamirZamanlayici
 local canMetin
 local skorMetin
+local bolumMetin
+local atesButonu
+local bolumGecisZamanlayici
+local aktif = true
+local yapilanVurus = 0
+local hedefVurus = 15
+local sesAcik = true
 
 --oyun gruplarının oluşturulması
 local arkaPlanGroup --arkaplan resimlerinin gurubu
@@ -83,6 +93,7 @@ local muzikYukleme
 local function metniGuncelle()
     canMetin.text = "Canlar: " .. canlar
     skorMetin.text = "Skorunuz: " .. skor
+    bolumMetin.text = "Bölüm 2  •  Hedef: " .. yapilanVurus .. "/" .. hedefVurus
 end
 
 local asteroidTipleri =
@@ -97,7 +108,8 @@ local hizCarpani = 1
 
 local function asteroidOlustur()
     local olusmaYeri = math.random(3)
-    local tip = asteroidTipleri[math.random(#asteroidTipleri)]
+    -- Her giriş yönü kendi meteor şeklini kullanır: sol=1, üst=2, sağ=3.
+    local tip = asteroidTipleri[olusmaYeri]
 
     local yeniAsteroid = display.newImageRect(anaGroup, resimLevha, tip.frame, tip.genislik, tip.yukseklik)
     table.insert(asteroidTable, yeniAsteroid)
@@ -130,6 +142,7 @@ local lazerSoGuk = 300
 local sonLazerZamani = 0
 
 local function lazeriAtesle()
+    if not aktif or not gemi or not gemi.parent then return true end
     local simdi = system.getTimer()
     if (simdi - sonLazerZamani) < lazerSoGuk then
         return
@@ -170,6 +183,11 @@ local function hareketGemi(event)
         gemi.touchOffsetX = event.x - gemi.x
         --gemi.touchOffset = event.y - gemi.y
     elseif ("moved" == faz) then
+        -- Bazı cihazlar/fokus değişimlerinde ilk gelen olay "moved" olabilir.
+        -- Ofset yoksa bu hareketi başlangıç noktası kabul ederek çökmeden devam et.
+        if gemi.touchOffsetX == nil then
+            gemi.touchOffsetX = event.x - gemi.x
+        end
         local yariGenislik = gemi.contentWidth / 2
         local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2 + yariGenislik
         local gorunurSag = (display.contentWidth + display.viewableContentWidth) / 2 - yariGenislik
@@ -183,6 +201,7 @@ local function hareketGemi(event)
 end
 
 local function oyunDongu()
+    if not aktif then return end
     --hız baştan itibaren giderek artar
     hizCarpani = hizCarpani + 0.05
     --yeni asteroid fonksiyonunu çağır
@@ -201,6 +220,7 @@ local function oyunDongu()
 end
 
 local function gemiTamir()
+    if not gemi or not gemi.parent then return end
     gemi.isBodyActive = false
     gemi.x = display.contentCenterX
     gemi.y = display.contentHeight - 100
@@ -216,12 +236,27 @@ local function gemiTamir()
 end
 
 local function oyun2Bitti()
-    _G.oyunBitti = true
-    sahne_degis.setVariable("aktarilanSkor", skor)
-    sahne_degis.gotoScene("oyun3", { time = 800, effect = "crossFade" })
+    if not aktif then return end
+    aktif = false
+    oyunKayit.clear()
+    sahne_degis.setVariable("finalSkor", skor)
+    sahne_degis.gotoScene("yuksek_skor", { time = 800, effect = "crossFade" })
+end
+
+local function bolumTamamlandi()
+    if not aktif then return end
+    aktif = false
+    bolumMetin.text = "Bölüm tamamlandı!"
+    local kayit = { version = 1, valid = true, score = skor, level = 3, lives = 5, progress = 0, soundEnabled = sesAcik }
+    oyunKayit.save(kayit)
+    bolumGecisZamanlayici = timer.performWithDelay(1200, function()
+        sahne_degis.setVariable("devamKaydi", kayit)
+        sahne_degis.gotoScene("oyun3", { time = 800, effect = "crossFade" })
+    end)
 end
 
 local function carpisma(event)
+    if not aktif then return end
     if (event.phase == "began") then
         local obj1 = event.object1
         local obj2 = event.object2
@@ -241,7 +276,10 @@ local function carpisma(event)
                 end
             end
             skor = skor + 100
-            skorMetin.text = "Skorunuz: " .. skor
+            yapilanVurus = yapilanVurus + 1
+            metniGuncelle()
+            oyunKayit.saveCurrent()
+            if yapilanVurus >= hedefVurus then bolumTamamlandi() end
         elseif ((obj1.myName == "gemi" and obj2.myName == "asteroid") or
                 (obj1.myName == "asteroid" and obj2.myName == "gemi"))
 
@@ -255,6 +293,7 @@ local function carpisma(event)
                 --canı güncelle
                 canlar = canlar - 1
                 canMetin.text = "Canlar: " .. canlar
+                if canlar > 0 then oyunKayit.saveCurrent() end
                 if canlar == 1 then
                     gemi:setFillColor(1, 0, 0)
                 end
@@ -277,14 +316,25 @@ end
 -- create()
 function scene:create(event)
     local sceneGroup = self.view
-    -- Code here runs when the scene is first created but has not yet appeared on screen
-    --oyun.lua'dan gelen skor aktarımı ve can yükseltme
+    local devamKaydi = sahne_degis.getVariable("devamKaydi")
+    sahne_degis.setVariable("devamKaydi", nil)
     local aktarilanSkor = sahne_degis.getVariable("aktarilanSkor")
     sahne_degis.setVariable("aktarilanSkor", nil)
-    if aktarilanSkor then
-        skor = aktarilanSkor
-        canlar = 5
+    if type(devamKaydi) == "table" and devamKaydi.level == 2 then
+        skor = devamKaydi.score or 0
+        canlar = devamKaydi.lives or 5
+        yapilanVurus = math.min(devamKaydi.progress or 0, hedefVurus - 1)
+        sesAcik = devamKaydi.soundEnabled ~= false
+    else
+        skor = aktarilanSkor or 0
+        canlar = aktarilanSkor and 5 or 3
+        sesAcik = oyunKayit.load().soundEnabled
     end
+    if type(devamKaydi) ~= "table" or devamKaydi.level ~= 2 then yapilanVurus = 0 end
+    aktif = true
+    oyunKayit.setProvider(function()
+        return { version = 1, valid = aktif or bolumGecisZamanlayici ~= nil, score = skor, level = 2, lives = canlar, progress = yapilanVurus, soundEnabled = sesAcik }
+    end)
 
     fizikler.pause()
 
@@ -307,17 +357,25 @@ function scene:create(event)
     gemi.myName = "gemi"
     gemi:setFillColor(0, 0, 1)
 
-    -- Can ve skorların Eklenmesi
-    canMetin = display.newText(uiGroup, "Canlar: " .. canlar, 200, 80, native.systemFont, 40)
-    skorMetin = display.newText(uiGroup, "Skorunuz: " .. skor, 500, 80, native.systemFont, 40)
-
-    local geriButon = display.newText(sceneGroup, "Geri", 50, 20, native.systemFont, 50)
-    geriButon:setFillColor(0.88, 0.88, 1)
+    local left, top, width, height = safeArea.bounds()
+    canMetin = display.newText(uiGroup, "", left + 12, top + 48, native.systemFont, 26)
+    canMetin.anchorX = 0
+    skorMetin = display.newText(uiGroup, "", left + width - 12, top + 48, native.systemFont, 22)
+    skorMetin.anchorX = 1
+    bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 92, native.systemFont, 20)
+    local geriButon = display.newRoundedRect(uiGroup, left + 58, top + 92, 100, 52, 14)
+    geriButon:setFillColor(0.16, 0.24, 0.38, 0.92)
     geriButon:addEventListener("tap", gotoMenu)
+    local geriMetin = display.newText(uiGroup, "Geri", geriButon.x, geriButon.y, native.systemFont, 24)
+    geriMetin:addEventListener("tap", gotoMenu)
+    atesButonu = display.newRoundedRect(uiGroup, left + width - 78, top + height - 70, 132, 64, 16)
+    atesButonu:setFillColor(0.55, 0.16, 0.18, 0.95)
+    atesButonu:addEventListener("tap", lazeriAtesle)
+    local atesMetin = display.newText(uiGroup, "ATEŞ", atesButonu.x, atesButonu.y, native.systemFont, 26)
+    atesMetin:addEventListener("tap", lazeriAtesle)
 
     metniGuncelle()
 
-    gemi:addEventListener("tap", lazeriAtesle)
     gemi:addEventListener("touch", hareketGemi)
 
     patlamaSesi = audio.loadSound("audio/explosion.wav")
@@ -350,7 +408,7 @@ function scene:hide(event)
 
     if (phase == "will") then
         -- Code here runs when the scene is on screen (but is about to go off screen)
-        timer.cancel(oyundonguzamani)
+        if oyundonguzamani then timer.cancel(oyundonguzamani) end
         if oyunBittiZamanlayici then
             timer.cancel(oyunBittiZamanlayici)
             oyunBittiZamanlayici = nil
@@ -362,11 +420,15 @@ function scene:hide(event)
         if gemi then
             transition.cancel(gemi)
         end
+        display.currentStage:setFocus(nil)
+        if bolumGecisZamanlayici then timer.cancel(bolumGecisZamanlayici); bolumGecisZamanlayici = nil end
     elseif (phase == "did") then
         -- Code here runs immediately after the scene goes entirely off screen
         Runtime:removeEventListener("collision", carpisma)
         fizikler.pause()
         audio.stop(1)
+        audio.stop(2)
+        audio.stop(3)
         sahne_degis.removeScene("oyun2")
     end
 end
@@ -374,11 +436,16 @@ end
 -- destroy()
 function scene:destroy(event)
     local sceneGroup = self.view
+    oyunKayit.saveCurrent()
+    oyunKayit.setProvider(nil)
     -- Code here runs prior to the removal of scene's view
     --sesi oyundan çıktıktansonra atmak
-    audio.dispose(patlamaSesi)
-    audio.dispose(lazerAtesSesi)
-    audio.dispose(muzikYukleme)
+    audio.stop(1)
+    audio.stop(2)
+    audio.stop(3)
+    if patlamaSesi then audio.dispose(patlamaSesi); patlamaSesi = nil end
+    if lazerAtesSesi then audio.dispose(lazerAtesSesi); lazerAtesSesi = nil end
+    if muzikYukleme then audio.dispose(muzikYukleme); muzikYukleme = nil end
 end
 
 -- -----------------------------------------------------------------------------------
