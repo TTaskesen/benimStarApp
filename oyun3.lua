@@ -56,16 +56,7 @@ local patlamaSesi
 local lazerAtesSesi
 local muzikYukleme
 
---dar kanal (koridor) ayarları
-local kaymaHizi = 100 -- kanalların kayma hızı (px/sn)
-local segmentAraligi = 360
-local boslukGenisligi = 220
-
-local kanalTable = {}
 local asteroidTable = {}
-local toplamKanal = 0
-local kayilanMesafe = 0
-local oncekiGapYonu = "sag"
 local meteorAraligi = 650
 local sonMeteorZamani = 0
 local ayar = oyunAyar.level(3)
@@ -74,7 +65,6 @@ local oyunBittiZamanlayici
 local tamirZamanlayici
 local bolumGecisZamanlayici
 local aktif = true
-local gecilenKanal = 0
 local yapilanVurus = 0
 local hedefVurus = ayar.hedef
 local atisSayisi = 0
@@ -98,7 +88,6 @@ local lazerSoGuk = 300
 local sonLazerZamani = 0
 
 local GEMI_KATEGORI = 1
-local DUVAR_KATEGORI = 2
 local METEOR_KATEGORI = 4
 local LAZER_KATEGORI = 8
 
@@ -106,7 +95,7 @@ local LAZER_KATEGORI = 8
 local function metniGuncelle()
     canMetin.text = "Canlar: " .. canlar
     skorMetin.text = "Skorunuz: " .. skor
-    bolumMetin.text = "Bölüm 3 • Meteorları vur,\nduvarlardan kaç. • Dalga " .. dalgaNo .. "/" .. ayar.dalgaSayisi .. " • " .. dalgaVurus .. "/" .. ayar.dalgaBasina .. " • " .. combo .. "x"
+    bolumMetin.text = "Bölüm 3 • Meteorları vur • Dalga " .. dalgaNo .. "/" .. ayar.dalgaSayisi .. " • " .. dalgaVurus .. "/" .. ayar.dalgaBasina .. " • " .. combo .. "x"
 end
 
 local function dalgaGuncelle()
@@ -131,12 +120,6 @@ local function komboGuncelle()
 end
 
 --zoomEven kırpmasında görünür ekran sınırları
-local function gorunurSinirlar()
-    local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2
-    local gorunurSag = display.contentWidth - gorunurSol
-    return gorunurSol, gorunurSag
-end
-
 local asteroidTipleri =
 {
     { frame = 1, genislik = 102, yukseklik = 85, renk = {1, 0.3, 0.3} },
@@ -174,39 +157,6 @@ local function meteorOlustur()
     end
 end
 
-local function kanalSegmentiOlustur()
-    local gorunurSol, gorunurSag = gorunurSinirlar()
-
-    --boşluk solda ya da sağda dönüşümlü: kenarlara duvar, gemi sağa sola geçer
-    local gapYonu = oncekiGapYonu == "sag" and "sol" or "sag"
-    oncekiGapYonu = gapYonu
-
-    local yukseklik = segmentAraligi + 120
-    local baslangicY = -yukseklik / 2
-    local genislik = gorunurSag - gorunurSol - boslukGenisligi
-    local ortaX
-
-    if gapYonu == "sol" then
-        --duvar sağda: boşluğun sağından ekranın sağına kadar
-        ortaX = gorunurSol + boslukGenisligi + genislik / 2
-    else
-        --duvar solda: ekranın solundan boşluğun soluna kadar
-        ortaX = gorunurSol + genislik / 2
-    end
-
-    local duvar = display.newRect(anaGroup, ortaX, baslangicY, genislik, yukseklik)
-    duvar:setFillColor(0.25, 0.35, 0.6)
-    fizikler.addBody(duvar, "static", {
-        halfWidth = genislik / 2,
-        halfHeight = yukseklik / 2,
-        filter = { categoryBits = DUVAR_KATEGORI, maskBits = GEMI_KATEGORI + LAZER_KATEGORI },
-    })
-    duvar.myName = "duvar"
-
-    table.insert(kanalTable, { duvar = duvar, gecildi = false })
-    toplamKanal = toplamKanal + 1
-end
-
 local function lazeriAtesle()
     if not aktif or bolumGecisiAktif or not gemi or not gemi.parent then return true end
     local simdi = system.getTimer()
@@ -229,7 +179,7 @@ local function lazeriAtesle()
     fizikler.addBody(yeniLazer, "dynamic", {
         radius = 7,
         isSensor = true,
-        filter = { categoryBits = LAZER_KATEGORI, maskBits = METEOR_KATEGORI + DUVAR_KATEGORI },
+        filter = { categoryBits = LAZER_KATEGORI, maskBits = METEOR_KATEGORI },
     })
     yeniLazer.isBullet = true
     yeniLazer.myName = "lazer"
@@ -294,42 +244,6 @@ local function oyunDongu(event)
     if simdi - sonMeteorZamani >= meteorAraligi then
         meteorOlustur()
         sonMeteorZamani = simdi
-    end
-
-    --yeni kanal segmenti oluştur (sonsuz)
-    if kayilanMesafe > toplamKanal * segmentAraligi then
-        kanalSegmentiOlustur()
-    end
-
-    --gemi yukarıdayken dünya daha hızlı kayar (kamera gemiyi takip eder)
-    local etkinKayma = kaymaHizi
-    if gemi and gemi.parent then
-        etkinKayma = kaymaHizi + math.max(0, (display.contentHeight - 250) - gemi.y) * 0.2
-    end
-    kayilanMesafe = kayilanMesafe + etkinKayma * dt
-
-    --kanalları aşağı kaydır, geçilenleri ödüllendir, çıkanları sil
-    for i = #kanalTable, 1, -1 do
-        local s = kanalTable[i]
-        local duvar = s.duvar
-        if duvar.parent then
-            duvar.y = duvar.y + etkinKayma * dt
-
-            if (not s.gecildi) and gemi and gemi.parent and duvar.y > gemi.y + 60 then
-                s.gecildi = true
-                skor = skor + 100
-                gecilenKanal = gecilenKanal + 1
-                metniGuncelle()
-                oyunKayit.saveCurrent()
-            end
-
-            if duvar.y > display.contentHeight + 200 then
-                display.remove(duvar)
-                table.remove(kanalTable, i)
-            end
-        else
-            table.remove(kanalTable, i)
-        end
     end
 
     for i = #asteroidTable, 1, -1 do
@@ -447,15 +361,6 @@ local function carpisma(event)
             end
         end
         gemiHasar()
-    elseif ((isim1 == "lazer" and isim2 == "duvar") or (isim1 == "duvar" and isim2 == "lazer")) then
-        --lazer duvara çarptı
-        local lazer = isim1 == "lazer" and obj1 or obj2
-        if lazer.parent then display.remove(lazer) end
-    elseif ((isim1 == "gemi" and isim2 == "duvar") or (isim1 == "duvar" and isim2 == "gemi")) then
-        --gemi duvara çarptı, duvar kırılsın
-        local duvar = isim1 == "duvar" and obj1 or obj2
-        if duvar.parent then display.remove(duvar) end
-        gemiHasar()
     end
 end
 
@@ -491,12 +396,7 @@ function scene:create(event)
     bolumGecisiAktif = false
     dalgaGuncelle()
     baslangicCan = canlar
-    kanalTable = {}
     asteroidTable = {}
-    toplamKanal = 0
-    gecilenKanal = 0
-    kayilanMesafe = 0
-    oncekiGapYonu = "sag"
     sonMeteorZamani = 0
     oncekiKareZamani = nil
     aktif = true
@@ -524,7 +424,7 @@ function scene:create(event)
     fizikler.addBody(gemi, {
         radius = 30,
         isSensor = true,
-        filter = { categoryBits = GEMI_KATEGORI, maskBits = METEOR_KATEGORI + DUVAR_KATEGORI },
+        filter = { categoryBits = GEMI_KATEGORI, maskBits = METEOR_KATEGORI },
     })
     gemi.myName = "gemi"
     gemi:setFillColor(0, 0.6, 1)
@@ -534,7 +434,7 @@ function scene:create(event)
     canMetin.anchorX = 0
     skorMetin = display.newText(uiGroup, "", left + width - 12, top + 48, native.systemFont, 22)
     skorMetin.anchorX = 1
-    bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 92, native.systemFont, 20)
+    bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 126, native.systemFont, 18)
     geriButon = display.newRoundedRect(uiGroup, left + 58, top + 92, 100, 52, 14)
     geriButon:setFillColor(0.16, 0.24, 0.38, 0.92)
     geriButon:addEventListener("tap", gotoMenu)
