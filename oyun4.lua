@@ -3,22 +3,10 @@ local oyunKayit = require("oyun_kayit")
 local safeArea = require("safe_area")
 
 local scene = sahne_degis.newScene()
-
--- -----------------------------------------------------------------------------------
--- Code outside of the scene event functions below will only be executed ONCE unless
--- the scene is removed entirely (not recycled) via "composer.removeScene()"
--- -----------------------------------------------------------------------------------
-
-local function gotoMenu()
-    oyunKayit.saveCurrent()
-    sahne_degis.gotoScene("menu", { time = 800, effect = "crossFade" })
-end
-
 local fizikler = require("physics")
 fizikler.start()
 fizikler.setGravity(0, 0)
 
---levha resimlerinin alınması
 local levhaResimleriAl =
 {
     frames =
@@ -32,8 +20,7 @@ local levhaResimleriAl =
 }
 local resimLevha = graphics.newImageSheet("gameObjects.png", levhaResimleriAl)
 
---başlangıç verileri
-local canlar = 3
+local canlar = 5
 local skor = 0
 local olum = false
 local gemi
@@ -42,25 +29,20 @@ local skorMetin
 local bolumMetin
 local atesButonu
 
---oyun gruplarının oluşturulması
 local arkaPlanGroup
 local anaGroup
 local uiGroup
+local asteroidTable = {}
+local duvarTable = {}
 
 local patlamaSesi
 local lazerAtesSesi
 local muzikYukleme
 
---dar kanal (koridor) ayarları
-local kaymaHizi = 100 -- kanalların kayma hızı (px/sn)
-local segmentAraligi = 360
-local boslukGenisligi = 220
-
-local kanalTable = {}
-local asteroidTable = {}
-local toplamKanal = 0
-local kayilanMesafe = 0
-local oncekiGapYonu = "sag"
+local duvarHizi = 190 * 0.6 -- önceki hızın %40 azaltılmış hali: 114 px/sn
+local duvarAraligi = 2600 -- duvarlar arasında daha geniş dikey mesafe
+local duvarSayac = 0
+local sonrakiDuvar = "sol"
 local meteorAraligi = 650
 local sonMeteorZamani = 0
 
@@ -68,9 +50,8 @@ local oyunBittiZamanlayici
 local tamirZamanlayici
 local bolumGecisZamanlayici
 local aktif = true
-local gecilenKanal = 0
 local yapilanVurus = 0
-local hedefVurus = 100
+local hedefVurus = 125
 local oncekiKareZamani
 local sesAcik = true
 local bolumTamamlandi
@@ -83,14 +64,17 @@ local DUVAR_KATEGORI = 2
 local METEOR_KATEGORI = 4
 local LAZER_KATEGORI = 8
 
---kullanıcı arayüzü textin güncellenmesi
+local function gotoMenu()
+    oyunKayit.saveCurrent()
+    sahne_degis.gotoScene("menu", { time = 800, effect = "crossFade" })
+end
+
 local function metniGuncelle()
     canMetin.text = "Canlar: " .. canlar
     skorMetin.text = "Skorunuz: " .. skor
-    bolumMetin.text = "Bölüm 3  •  Meteor: " .. yapilanVurus .. "/" .. hedefVurus
+    bolumMetin.text = "Bölüm 4  •  Meteor: " .. yapilanVurus .. "/" .. hedefVurus
 end
 
---zoomEven kırpmasında görünür ekran sınırları
 local function gorunurSinirlar()
     local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2
     local gorunurSag = display.contentWidth - gorunurSol
@@ -134,50 +118,41 @@ local function meteorOlustur()
     end
 end
 
-local function kanalSegmentiOlustur()
+local function duvarOlustur()
     local gorunurSol, gorunurSag = gorunurSinirlar()
+    local ekranGenisligi = gorunurSag - gorunurSol
+    local duvarGenisligi = ekranGenisligi * 0.56
+    local duvarYuksekligi = 34
+    local x
 
-    --boşluk solda ya da sağda dönüşümlü: kenarlara duvar, gemi sağa sola geçer
-    local gapYonu = oncekiGapYonu == "sag" and "sol" or "sag"
-    oncekiGapYonu = gapYonu
-
-    local yukseklik = segmentAraligi + 120
-    local baslangicY = -yukseklik / 2
-    local genislik = gorunurSag - gorunurSol - boslukGenisligi
-    local ortaX
-
-    if gapYonu == "sol" then
-        --duvar sağda: boşluğun sağından ekranın sağına kadar
-        ortaX = gorunurSol + boslukGenisligi + genislik / 2
+    if sonrakiDuvar == "sol" then
+        x = gorunurSol + duvarGenisligi / 2
+        sonrakiDuvar = "sag"
     else
-        --duvar solda: ekranın solundan boşluğun soluna kadar
-        ortaX = gorunurSol + genislik / 2
+        x = gorunurSag - duvarGenisligi / 2
+        sonrakiDuvar = "sol"
     end
 
-    local duvar = display.newRect(anaGroup, ortaX, baslangicY, genislik, yukseklik)
+    local duvar = display.newRect(anaGroup, x, -duvarYuksekligi, duvarGenisligi, duvarYuksekligi)
     duvar:setFillColor(0.25, 0.35, 0.6)
-    fizikler.addBody(duvar, "static", {
-        halfWidth = genislik / 2,
-        halfHeight = yukseklik / 2,
+    -- Duvar ekranda aşağı hareket ettiği için kinematic gövde kullanılır;
+    -- static gövdeyi her karede taşımak çarpışma süpürmesini atlayabilir.
+    fizikler.addBody(duvar, "kinematic", {
+        halfWidth = duvarGenisligi / 2,
+        halfHeight = duvarYuksekligi / 2,
         filter = { categoryBits = DUVAR_KATEGORI, maskBits = GEMI_KATEGORI + LAZER_KATEGORI },
     })
     duvar.myName = "duvar"
-
-    table.insert(kanalTable, { duvar = duvar, gecildi = false })
-    toplamKanal = toplamKanal + 1
+    table.insert(duvarTable, duvar)
 end
 
 local function lazeriAtesle()
     if not aktif or not gemi or not gemi.parent then return true end
     local simdi = system.getTimer()
-    if (simdi - sonLazerZamani) < lazerSoGuk then
-        return
-    end
+    if (simdi - sonLazerZamani) < lazerSoGuk then return true end
     sonLazerZamani = simdi
 
-    --lazer sesi
     audio.play(lazerAtesSesi, { channel = 2 })
-
     local yeniLazer = display.newImageRect(anaGroup, resimLevha, 5, 14, 40)
     fizikler.addBody(yeniLazer, "dynamic", {
         radius = 7,
@@ -186,7 +161,6 @@ local function lazeriAtesle()
     })
     yeniLazer.isBullet = true
     yeniLazer.myName = "lazer"
-
     yeniLazer.x = gemi.x
     yeniLazer.y = gemi.y - 50
     yeniLazer:toFront()
@@ -195,39 +169,29 @@ local function lazeriAtesle()
         y = -60,
         time = 700,
         onComplete = function()
-            if yeniLazer.parent then
-                display.remove(yeniLazer)
-            end
-        end
+            if yeniLazer.parent then display.remove(yeniLazer) end
+        end,
     })
+    return true
 end
 
 local function hareketGemi(event)
-    local gemi = event.target
-    local faz = event.phase
-    if ("began" == faz) then
-        --dokunma odaklanması
-        display.currentStage:setFocus(gemi)
-        gemi.touchOffsetX = event.x - gemi.x
-        gemi.touchOffsetY = event.y - gemi.y
-    elseif ("moved" == faz) then
-        -- Bazı cihazlar/fokus değişimlerinde ilk gelen olay "moved" olabilir.
-        -- Ofset yoksa bu hareketi başlangıç noktası kabul ederek çökmeden devam et.
-        if gemi.touchOffsetX == nil then
-            gemi.touchOffsetX = event.x - gemi.x
-        end
-        if gemi.touchOffsetY == nil then
-            gemi.touchOffsetY = event.y - gemi.y
-        end
-        local yariGenislik = gemi.contentWidth / 2
+    local hedef = event.target
+    if event.phase == "began" then
+        display.currentStage:setFocus(hedef)
+        hedef.touchOffsetX = event.x - hedef.x
+        hedef.touchOffsetY = event.y - hedef.y
+    elseif event.phase == "moved" then
+        if hedef.touchOffsetX == nil then hedef.touchOffsetX = event.x - hedef.x end
+        if hedef.touchOffsetY == nil then hedef.touchOffsetY = event.y - hedef.y end
+        local yariGenislik = hedef.contentWidth / 2
         local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2 + yariGenislik
         local gorunurSag = (display.contentWidth + display.viewableContentWidth) / 2 - yariGenislik
-        gemi.x = math.max(gorunurSol, math.min(gorunurSag, event.x - gemi.touchOffsetX))
-        --y ekseninde de hareket (kamera gemiyi takip eder, dünya kayar)
+        hedef.x = math.max(gorunurSol, math.min(gorunurSag, event.x - hedef.touchOffsetX))
         local ustSinir = display.contentHeight - 600
         local altSinir = display.contentHeight - 250
-        gemi.y = math.max(ustSinir, math.min(altSinir, event.y - gemi.touchOffsetY))
-    elseif ("ended" == faz or "cancelled" == faz) then
+        hedef.y = math.max(ustSinir, math.min(altSinir, event.y - hedef.touchOffsetY))
+    elseif event.phase == "ended" or event.phase == "cancelled" then
         display.currentStage:setFocus(nil)
     end
     return true
@@ -245,39 +209,19 @@ local function oyunDongu(event)
         sonMeteorZamani = simdi
     end
 
-    --yeni kanal segmenti oluştur (sonsuz)
-    if kayilanMesafe > toplamKanal * segmentAraligi then
-        kanalSegmentiOlustur()
+    duvarSayac = duvarSayac + dt * 1000
+    if #duvarTable == 0 or duvarSayac >= duvarAraligi then
+        duvarOlustur()
+        duvarSayac = 0
     end
 
-    --gemi yukarıdayken dünya daha hızlı kayar (kamera gemiyi takip eder)
-    local etkinKayma = kaymaHizi
-    if gemi and gemi.parent then
-        etkinKayma = kaymaHizi + math.max(0, (display.contentHeight - 250) - gemi.y) * 0.2
-    end
-    kayilanMesafe = kayilanMesafe + etkinKayma * dt
-
-    --kanalları aşağı kaydır, geçilenleri ödüllendir, çıkanları sil
-    for i = #kanalTable, 1, -1 do
-        local s = kanalTable[i]
-        local duvar = s.duvar
-        if duvar.parent then
-            duvar.y = duvar.y + etkinKayma * dt
-
-            if (not s.gecildi) and gemi and gemi.parent and duvar.y > gemi.y + 60 then
-                s.gecildi = true
-                skor = skor + 100
-                gecilenKanal = gecilenKanal + 1
-                metniGuncelle()
-                oyunKayit.saveCurrent()
-            end
-
-            if duvar.y > display.contentHeight + 200 then
-                display.remove(duvar)
-                table.remove(kanalTable, i)
-            end
+    for i = #duvarTable, 1, -1 do
+        local duvar = duvarTable[i]
+        if not duvar.parent or duvar.y > display.contentHeight + 100 then
+            display.remove(duvar)
+            table.remove(duvarTable, i)
         else
-            table.remove(kanalTable, i)
+            duvar.y = duvar.y + duvarHizi * dt
         end
     end
 
@@ -292,13 +236,13 @@ local function oyunDongu(event)
 end
 
 local function gemiTamir()
-    if not gemi then return end
+    if not gemi or not gemi.parent then return end
     gemi.isBodyActive = true
     gemi.alpha = 1
     olum = false
 end
 
-local function oyun3Bitti()
+local function oyunBitti()
     if not aktif then return end
     aktif = false
     oyunKayit.clear()
@@ -310,32 +254,25 @@ bolumTamamlandi = function()
     if not aktif then return end
     aktif = false
     bolumMetin.text = "Bölüm tamamlandı!"
-    local kayit = { version = 1, valid = true, score = skor, level = 4, lives = 5, progress = 0, soundEnabled = sesAcik }
-    oyunKayit.save(kayit)
+    oyunKayit.clear()
     bolumGecisZamanlayici = timer.performWithDelay(1200, function()
-        sahne_degis.setVariable("devamKaydi", kayit)
-        sahne_degis.gotoScene("oyun4", { time = 800, effect = "crossFade" })
+        sahne_degis.setVariable("finalSkor", skor)
+        sahne_degis.gotoScene("yuksek_skor", { time = 800, effect = "crossFade" })
     end)
 end
 
 local function gemiHasar()
     if olum then return end
     olum = true
-
-    --patlama sesi
     audio.play(patlamaSesi, { channel = 3 })
-
-    --canı güncelle
     canlar = canlar - 1
     canMetin.text = "Canlar: " .. canlar
     if canlar > 0 then oyunKayit.saveCurrent() end
-    if (canlar <= 0) then
+    if canlar <= 0 then
         display.remove(gemi)
-        oyunBittiZamanlayici = timer.performWithDelay(2000, oyun3Bitti)
+        oyunBittiZamanlayici = timer.performWithDelay(2000, oyunBitti)
     else
         gemi.alpha = 0.3
-        -- isBodyActive çarpışma olayı sırasında (dünya kilitli) set edilemez,
-        -- bu yüzden bir sonraki kareye ertelenir
         timer.performWithDelay(0, function()
             if gemi then gemi.isBodyActive = false end
         end)
@@ -343,9 +280,17 @@ local function gemiHasar()
     end
 end
 
+local function listedenCikar(liste, nesne)
+    for i = #liste, 1, -1 do
+        if liste[i] == nesne then
+            table.remove(liste, i)
+            return
+        end
+    end
+end
+
 local function carpisma(event)
-    if not aktif then return end
-    if (event.phase ~= "began") then return end
+    if not aktif or event.phase ~= "began" then return end
     local obj1 = event.object1
     local obj2 = event.object2
     local isim1 = obj1.myName
@@ -356,12 +301,7 @@ local function carpisma(event)
         local asteroid = isim1 == "asteroid" and obj1 or obj2
         if lazer.parent then display.remove(lazer) end
         if asteroid.parent then display.remove(asteroid) end
-        for i = #asteroidTable, 1, -1 do
-            if asteroidTable[i] == asteroid then
-                table.remove(asteroidTable, i)
-                break
-            end
-        end
+        listedenCikar(asteroidTable, asteroid)
         audio.play(patlamaSesi, { channel = 3 })
         skor = skor + 100
         yapilanVurus = yapilanVurus + 1
@@ -371,37 +311,27 @@ local function carpisma(event)
     elseif ((isim1 == "gemi" and isim2 == "asteroid") or (isim1 == "asteroid" and isim2 == "gemi")) then
         local asteroid = isim1 == "asteroid" and obj1 or obj2
         if asteroid.parent then display.remove(asteroid) end
-        for i = #asteroidTable, 1, -1 do
-            if asteroidTable[i] == asteroid then
-                table.remove(asteroidTable, i)
-                break
-            end
-        end
+        listedenCikar(asteroidTable, asteroid)
         gemiHasar()
     elseif ((isim1 == "lazer" and isim2 == "duvar") or (isim1 == "duvar" and isim2 == "lazer")) then
-        --lazer duvara çarptı
         local lazer = isim1 == "lazer" and obj1 or obj2
         if lazer.parent then display.remove(lazer) end
     elseif ((isim1 == "gemi" and isim2 == "duvar") or (isim1 == "duvar" and isim2 == "gemi")) then
-        --gemi duvara çarptı, duvar kırılsın
         local duvar = isim1 == "duvar" and obj1 or obj2
         if duvar.parent then display.remove(duvar) end
+        listedenCikar(duvarTable, duvar)
         gemiHasar()
     end
 end
 
--- -----------------------------------------------------------------------------------
--- Scene event functions
--- -----------------------------------------------------------------------------------
-
--- create()
 function scene:create(event)
     local sceneGroup = self.view
     local devamKaydi = sahne_degis.getVariable("devamKaydi")
     sahne_degis.setVariable("devamKaydi", nil)
     local aktarilanSkor = sahne_degis.getVariable("aktarilanSkor")
     sahne_degis.setVariable("aktarilanSkor", nil)
-    if type(devamKaydi) == "table" and devamKaydi.level == 3 then
+
+    if type(devamKaydi) == "table" and devamKaydi.level == 4 then
         skor = devamKaydi.score or 0
         canlar = devamKaydi.lives or 5
         yapilanVurus = math.min(devamKaydi.progress or 0, hedefVurus - 1)
@@ -409,23 +339,23 @@ function scene:create(event)
     else
         skor = aktarilanSkor or 0
         canlar = aktarilanSkor and 5 or 3
+        yapilanVurus = 0
         sesAcik = oyunKayit.load().soundEnabled
     end
-    if type(devamKaydi) ~= "table" or devamKaydi.level ~= 3 then yapilanVurus = 0 end
-    kanalTable = {}
+
     asteroidTable = {}
-    toplamKanal = 0
-    kayilanMesafe = 0
-    oncekiGapYonu = "sag"
+    duvarTable = {}
+    duvarSayac = 0
+    sonrakiDuvar = "sol"
     sonMeteorZamani = 0
     oncekiKareZamani = nil
     aktif = true
+    olum = false
     oyunKayit.setProvider(function()
-        return { version = 1, valid = aktif or bolumGecisZamanlayici ~= nil, score = skor, level = 3, lives = canlar, progress = yapilanVurus, soundEnabled = sesAcik }
+        return { version = 1, valid = aktif or bolumGecisZamanlayici ~= nil, score = skor, level = 4, lives = canlar, progress = yapilanVurus, soundEnabled = sesAcik }
     end)
 
     fizikler.pause()
-
     arkaPlanGroup = display.newGroup()
     sceneGroup:insert(arkaPlanGroup)
     anaGroup = display.newGroup()
@@ -437,7 +367,6 @@ function scene:create(event)
     arkaPlan.x = display.contentCenterX
     arkaPlan.y = display.contentCenterY
 
-    --geminin yüklenmesi
     gemi = display.newImageRect(anaGroup, resimLevha, 4, 98, 79)
     gemi.x = display.contentCenterX
     gemi.y = display.contentHeight - 250
@@ -447,7 +376,7 @@ function scene:create(event)
         filter = { categoryBits = GEMI_KATEGORI, maskBits = METEOR_KATEGORI + DUVAR_KATEGORI },
     })
     gemi.myName = "gemi"
-    gemi:setFillColor(0, 0.6, 1)
+    gemi:setFillColor(1, 0.6, 0)
 
     local left, top, width, height = safeArea.bounds()
     canMetin = display.newText(uiGroup, "", left + 12, top + 48, native.systemFont, 26)
@@ -467,61 +396,42 @@ function scene:create(event)
     atesMetin:addEventListener("tap", lazeriAtesle)
 
     metniGuncelle()
-
     gemi:addEventListener("touch", hareketGemi)
-
     patlamaSesi = audio.loadSound("audio/explosion.wav")
     lazerAtesSesi = audio.loadSound("audio/fire.wav")
     muzikYukleme = audio.loadStream("audio/80s-Space-Game_Looping.wav")
 end
 
--- show()
 function scene:show(event)
-    local phase = event.phase
-    if (phase == "did") then
+    if event.phase == "did" then
         fizikler.start()
         Runtime:addEventListener("collision", carpisma)
         Runtime:addEventListener("enterFrame", oyunDongu)
-
-        --start müzik
         audio.play(muzikYukleme, { channel = 1, loops = -1 })
     end
 end
 
--- hide()
 function scene:hide(event)
-    local phase = event.phase
-    if (phase == "will") then
+    if event.phase == "will" then
         Runtime:removeEventListener("enterFrame", oyunDongu)
-        oncekiKareZamani = nil
-        if oyunBittiZamanlayici then
-            timer.cancel(oyunBittiZamanlayici)
-            oyunBittiZamanlayici = nil
-        end
-        if tamirZamanlayici then
-            timer.cancel(tamirZamanlayici)
-            tamirZamanlayici = nil
-        end
-        if gemi then
-            transition.cancel(gemi)
-        end
         display.currentStage:setFocus(nil)
+        if oyunBittiZamanlayici then timer.cancel(oyunBittiZamanlayici); oyunBittiZamanlayici = nil end
+        if tamirZamanlayici then timer.cancel(tamirZamanlayici); tamirZamanlayici = nil end
         if bolumGecisZamanlayici then timer.cancel(bolumGecisZamanlayici); bolumGecisZamanlayici = nil end
-    elseif (phase == "did") then
+        if gemi then transition.cancel(gemi) end
+    elseif event.phase == "did" then
         Runtime:removeEventListener("collision", carpisma)
         fizikler.pause()
         audio.stop(1)
         audio.stop(2)
         audio.stop(3)
-        sahne_degis.removeScene("oyun3")
+        sahne_degis.removeScene("oyun4")
     end
 end
 
--- destroy()
 function scene:destroy(event)
     oyunKayit.saveCurrent()
     oyunKayit.setProvider(nil)
-    --sesi oyundan çıktıktansonra atmak
     audio.stop(1)
     audio.stop(2)
     audio.stop(3)
@@ -530,13 +440,9 @@ function scene:destroy(event)
     if muzikYukleme then audio.dispose(muzikYukleme); muzikYukleme = nil end
 end
 
--- -----------------------------------------------------------------------------------
--- Scene event function listeners
--- -----------------------------------------------------------------------------------
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
 scene:addEventListener("hide", scene)
 scene:addEventListener("destroy", scene)
--- -----------------------------------------------------------------------------------
 
 return scene

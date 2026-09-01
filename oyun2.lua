@@ -73,7 +73,7 @@ local atesButonu
 local bolumGecisZamanlayici
 local aktif = true
 local yapilanVurus = 0
-local hedefVurus = 15
+local hedefVurus = 75
 local sesAcik = true
 
 --oyun gruplarının oluşturulması
@@ -294,9 +294,6 @@ local function carpisma(event)
                 canlar = canlar - 1
                 canMetin.text = "Canlar: " .. canlar
                 if canlar > 0 then oyunKayit.saveCurrent() end
-                if canlar == 1 then
-                    gemi:setFillColor(1, 0, 0)
-                end
                 if (canlar == 0) then
                     display.remove(gemi)
                     oyunBittiZamanlayici = timer.performWithDelay(2000, oyun2Bitti)

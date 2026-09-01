@@ -9,6 +9,9 @@ local sesMetni
 local devamButonu
 local devamButonMetni
 
+local GIZLILIK_URL = "https://ttaskesen.github.io/benimStarApp/privacy-policy/"
+local DESTEK_URL = "https://github.com/TTaskesen/benimStarApp/issues"
+
 local function makeButton(group, label, y, handler)
     local left, _, width = safeArea.bounds()
     local button = display.newRoundedRect(group, left + width * 0.5, y, math.min(360, width - 32), 64, 16)
@@ -56,6 +59,16 @@ local function sesiDegistir()
     return true
 end
 
+local function gizlilikPolitikasi()
+    system.openURL(GIZLILIK_URL)
+    return true
+end
+
+local function destekVeIletisim()
+    system.openURL(DESTEK_URL)
+    return true
+end
+
 function scene:create(event)
     local sceneGroup = self.view
     local left, top, width, height = safeArea.bounds()
@@ -74,11 +87,18 @@ function scene:create(event)
     logo.x = centerX
     logo.y = title.y + title.height * 0.5 + logoSize * 0.5 + 22
 
-    local firstY = top + math.min(560, height * 0.57)
+    -- Alt düğmelerin güvenli alanda kalması için ilk düğmeyi toplam menü
+    -- yüksekliğine göre sınırla. Bu, kısa ekranlarda destek bağlantılarının
+    -- ekran dışına taşmasını önler.
+    local sonDugmeOfseti = 410
+    local maxFirstY = top + height - 32 - 64 * 0.5 - sonDugmeOfseti
+    local firstY = math.min(top + math.min(520, height * 0.50), maxFirstY)
     makeButton(sceneGroup, "Yeni Oyun", firstY, yeniOyun)
     devamButonu, devamButonMetni = makeButton(sceneGroup, "Devam Et", firstY + 82, devamEt)
     makeButton(sceneGroup, "Yüksek Skor", firstY + 164, gotoYuksekSkor)
     local _, soundText = makeButton(sceneGroup, "Ses: Açık", firstY + 246, sesiDegistir)
+    makeButton(sceneGroup, "Gizlilik Politikası", firstY + 328, gizlilikPolitikasi)
+    makeButton(sceneGroup, "Destek / İletişim", firstY + 410, destekVeIletisim)
     sesMetni = soundText
     menuSesi = audio.loadStream("audio/Escape_Looping.wav")
 end

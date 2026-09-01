@@ -36,9 +36,9 @@ local function dogrula(data)
     local temiz = varsayilan()
     temiz.valid = data.valid == true
     temiz.score = sayi(data.score, 0, 0, 1000000000)
-    temiz.level = sayi(data.level, 1, 1, 3)
+    temiz.level = sayi(data.level, 1, 1, 4)
     temiz.lives = sayi(data.lives, 3, 0, 9)
-    temiz.progress = sayi(data.progress, 0, 0, 100)
+    temiz.progress = sayi(data.progress, 0, 0, 200)
     if type(data.soundEnabled) == "boolean" then
         temiz.soundEnabled = data.soundEnabled
     end

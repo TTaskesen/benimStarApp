@@ -18,6 +18,8 @@ settings =
 	--
 	android =
 	{
+		-- Play Console sürümlerini ayırt eden artan Android sürüm kodu.
+		versionCode = "1",
 	},
 
 	--
