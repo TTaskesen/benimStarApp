@@ -10,7 +10,7 @@ local devamButonu
 local devamButonMetni
 
 local GIZLILIK_URL = "https://ttaskesen.github.io/benimStarApp/privacy-policy/"
-local DESTEK_URL = "https://github.com/TTaskesen/benimStarApp/issues"
+local DESTEK_URL = "mailto:taskesen@msn.com?subject=Yildiz%20Savasi%20Destek"
 
 local function makeButton(group, label, y, handler)
     local left, _, width = safeArea.bounds()
