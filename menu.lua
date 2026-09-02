@@ -11,7 +11,6 @@ local devamButonu
 local devamButonMetni
 
 local GIZLILIK_URL = "https://ttaskesen.github.io/benimStarApp/privacy-policy/"
-local DESTEK_URL = "mailto:taskesen@msn.com?subject=Yildiz%20Savasi%20Destek"
 
 local function makeButton(group, label, y, handler)
     local left, _, width = safeArea.bounds()
@@ -66,7 +65,7 @@ local function gizlilikPolitikasi()
 end
 
 local function destekVeIletisim()
-    system.openURL(DESTEK_URL)
+    sahne_degis.gotoScene("destek", { time = 500, effect = "crossFade" })
     return true
 end
 
