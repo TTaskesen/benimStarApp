@@ -18,7 +18,7 @@ M.levels = {
     },
     [4] = {
         hedef = 75, dalgaSayisi = 5, dalgaBasina = 15,
-        meteorAraligi = 650, duvarAraligi = 2600, duvarHizi = 114,
+        meteorAraligi = 650, duvarAraligi = 2600 * 3, duvarHizi = 114 * 0.6, -- Duvar aralığı 3 katına, iniş hızı %40 azaltıldı.
         gucAraligi = 8000, gucSuresi = 8000, cokluLazerAtis = 8, yavaslatmaCarpani = 0.55,
     },
 }

@@ -31,6 +31,10 @@ local skorMetin
 local bolumMetin
 local atesButonu
 local gucMetin
+local solButon
+local sagButon
+local solMetin
+local sagMetin
 
 local arkaPlanGroup
 local anaGroup
@@ -80,6 +84,8 @@ local gucBitis = 0
 local kalkanAktif = false
 local yavaslatmaCarpani = 1
 local cokluLazerAtis = 0
+local hareketYon = 0
+local hareketHizi = 260
 
 local lazerSoGuk = 300
 local sonLazerZamani = 0
@@ -263,6 +269,17 @@ local function hareketGemi(event)
     return true
 end
 
+local function hareketTusDokunma(event)
+    if event.phase == "began" then
+        hareketYon = event.target.hareketYon
+        display.currentStage:setFocus(event.target)
+    elseif event.phase == "ended" or event.phase == "cancelled" then
+        if hareketYon == event.target.hareketYon then hareketYon = 0 end
+        display.currentStage:setFocus(nil)
+    end
+    return true
+end
+
 local function gucOlustur()
     if not anaGroup or not anaGroup.parent then return end
     local turler = { "coklu_lazer", "kalkan", "yavaslatma" }
@@ -317,9 +334,16 @@ local function oyunDongu(event)
     end
 
     duvarSayac = duvarSayac + dt * 1000
-    if #duvarTable == 0 or duvarSayac >= duvarAraligi then
+    if duvarSayac >= duvarAraligi then
         duvarOlustur()
         duvarSayac = 0
+    end
+
+    if gemi and gemi.parent and hareketYon ~= 0 then
+        local yariGenislik = gemi.contentWidth / 2
+        local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2 + yariGenislik
+        local gorunurSag = (display.contentWidth + display.viewableContentWidth) / 2 - yariGenislik
+        gemi.x = math.max(gorunurSol, math.min(gorunurSag, gemi.x + hareketYon * hareketHizi * dt))
     end
 
     for i = #duvarTable, 1, -1 do
@@ -379,6 +403,10 @@ bolumTamamlandi = function()
     if geriMetin then geriMetin.alpha = 0.45 end
     if atesButonu then atesButonu.isHitTestable = false; atesButonu.alpha = 0.45 end
     if atesMetni then atesMetni.alpha = 0.45 end
+    if solButon then solButon.isHitTestable = false; solButon.alpha = 0.45 end
+    if solMetin then solMetin.alpha = 0.45 end
+    if sagButon then sagButon.isHitTestable = false; sagButon.alpha = 0.45 end
+    if sagMetin then sagMetin.alpha = 0.45 end
     bolumMetin.text = "Bölüm tamamlandı!"
     oyunMeta.markWaveCompleted(canlar == baslangicCan)
     oyunMeta.markComplete()
@@ -527,7 +555,8 @@ local function oyun4DurumHazirla(devamKaydi, aktarilanSkor)
     asteroidTable = {}
     duvarTable = {}
     gucTable = {}
-    duvarSayac = 0
+    -- İlk duvar hemen gelsin; çarpışma sonrası yeni duvar aralığı korunsun.
+    duvarSayac = duvarAraligi
     sonrakiDuvar = "sol"
     sonMeteorZamani = 0
     oncekiKareZamani = nil
@@ -579,6 +608,31 @@ local function oyun4GorunumHazirla(sceneGroup)
     atesButonu:addEventListener("tap", lazeriAtesle)
     atesMetin = display.newText(uiGroup, "ATEŞ", atesButonu.x, atesButonu.y, native.systemFont, 26)
     atesMetin:addEventListener("tap", lazeriAtesle)
+
+    -- Sağ/sol düğmeleri basılı tutulduğunda gemiyi sürekli ve yumuşak taşır.
+    local hareketY = top + height - 70
+    solButon = display.newRoundedRect(uiGroup, left + 38, hareketY, 68, 64, 16)
+    solButon:setFillColor(0.16, 0.38, 0.58, 0.96)
+    solButon.strokeWidth = 2
+    solButon:setStrokeColor(0.45, 0.75, 1, 0.95)
+    solButon.hareketYon = -1
+    solButon:addEventListener("touch", hareketTusDokunma)
+    solMetin = display.newText(uiGroup, "◀", solButon.x, solButon.y, native.systemFontBold, 30)
+    solMetin:setFillColor(0.9, 0.97, 1)
+    solMetin.hareketYon = -1
+    solMetin:addEventListener("touch", hareketTusDokunma)
+
+    sagButon = display.newRoundedRect(uiGroup, left + 112, hareketY, 68, 64, 16)
+    sagButon:setFillColor(0.16, 0.38, 0.58, 0.96)
+    sagButon.strokeWidth = 2
+    sagButon:setStrokeColor(0.45, 0.75, 1, 0.95)
+    sagButon.hareketYon = 1
+    sagButon:addEventListener("touch", hareketTusDokunma)
+    sagMetin = display.newText(uiGroup, "▶", sagButon.x, sagButon.y, native.systemFontBold, 30)
+    sagMetin:setFillColor(0.9, 0.97, 1)
+    sagMetin.hareketYon = 1
+    sagMetin:addEventListener("touch", hareketTusDokunma)
+
     gucMetin = display.newText(uiGroup, "", left + 12, top + 128, native.systemFont, 18)
     gucMetin.anchorX = 0
 
@@ -607,6 +661,7 @@ end
 
 function scene:hide(event)
     if event.phase == "will" then
+        hareketYon = 0
         Runtime:removeEventListener("enterFrame", oyunDongu)
         display.currentStage:setFocus(nil)
         if oyunBittiZamanlayici then timer.cancel(oyunBittiZamanlayici); oyunBittiZamanlayici = nil end

@@ -79,6 +79,13 @@ local geriButon
 local geriMetin
 local atesMetni
 local atesDolumZamanlayici
+local solButon
+local sagButon
+local solMetin
+local sagMetin
+local hareketYon = 0
+local hareketHizi = 260
+local hareketSonZamani
 local ertelenmisHasarTimer
 local oncekiKareZamani
 local sesAcik = true
@@ -231,6 +238,30 @@ local function hareketGemi(event)
     return true
 end
 
+local function hareketTusDokunma(event)
+    if bolumGecisiAktif then return true end
+    if event.phase == "began" then
+        hareketYon = event.target.hareketYon
+        display.currentStage:setFocus(event.target)
+    elseif event.phase == "ended" or event.phase == "cancelled" then
+        if hareketYon == event.target.hareketYon then hareketYon = 0 end
+        display.currentStage:setFocus(nil)
+    end
+    return true
+end
+
+local function hareketDongu(event)
+    local simdi = event.time or system.getTimer()
+    if not hareketSonZamani then hareketSonZamani = simdi end
+    local dt = math.max(0.001, math.min((simdi - hareketSonZamani) / 1000, 0.05))
+    hareketSonZamani = simdi
+    if not aktif or bolumGecisiAktif or not gemi or not gemi.parent or hareketYon == 0 then return end
+    local yariGenislik = gemi.contentWidth / 2
+    local gorunurSol = (display.contentWidth - display.viewableContentWidth) / 2 + yariGenislik
+    local gorunurSag = (display.contentWidth + display.viewableContentWidth) / 2 - yariGenislik
+    gemi.x = math.max(gorunurSol, math.min(gorunurSag, gemi.x + hareketYon * hareketHizi * dt))
+end
+
 local function oyunDongu(event)
     if not aktif or bolumGecisiAktif then return end
     local simdi = event.time or system.getTimer()
@@ -279,6 +310,10 @@ bolumTamamlandi = function()
     if geriMetin then geriMetin.alpha = 0.45 end
     if atesButonu then atesButonu.isHitTestable = false; atesButonu.alpha = 0.45 end
     if atesMetni then atesMetni.alpha = 0.45 end
+    if solButon then solButon.isHitTestable = false; solButon.alpha = 0.45 end
+    if solMetin then solMetin.alpha = 0.45 end
+    if sagButon then sagButon.isHitTestable = false; sagButon.alpha = 0.45 end
+    if sagMetin then sagMetin.alpha = 0.45 end
     bolumMetin.text = "Bölüm tamamlandı!"
     oyunMeta.markLevel4()
     oyunMeta.markWaveCompleted(canlar == baslangicCan)
@@ -446,6 +481,29 @@ function scene:create(event)
     atesMetni = display.newText(uiGroup, "ATEŞ", atesButonu.x, atesButonu.y, native.systemFont, 26)
     atesMetni:addEventListener("tap", lazeriAtesle)
 
+    local hareketY = top + height - 70
+    solButon = display.newRoundedRect(uiGroup, left + 38, hareketY, 68, 64, 16)
+    solButon:setFillColor(0.16, 0.38, 0.58, 0.96)
+    solButon.strokeWidth = 2
+    solButon:setStrokeColor(0.45, 0.75, 1, 0.95)
+    solButon.hareketYon = -1
+    solButon:addEventListener("touch", hareketTusDokunma)
+    solMetin = display.newText(uiGroup, "◀", solButon.x, solButon.y, native.systemFontBold, 30)
+    solMetin:setFillColor(0.9, 0.97, 1)
+    solMetin.hareketYon = -1
+    solMetin:addEventListener("touch", hareketTusDokunma)
+
+    sagButon = display.newRoundedRect(uiGroup, left + 112, hareketY, 68, 64, 16)
+    sagButon:setFillColor(0.16, 0.38, 0.58, 0.96)
+    sagButon.strokeWidth = 2
+    sagButon:setStrokeColor(0.45, 0.75, 1, 0.95)
+    sagButon.hareketYon = 1
+    sagButon:addEventListener("touch", hareketTusDokunma)
+    sagMetin = display.newText(uiGroup, "▶", sagButon.x, sagButon.y, native.systemFontBold, 30)
+    sagMetin:setFillColor(0.9, 0.97, 1)
+    sagMetin.hareketYon = 1
+    sagMetin:addEventListener("touch", hareketTusDokunma)
+
     metniGuncelle()
 
     gemi:addEventListener("touch", hareketGemi)
@@ -461,6 +519,8 @@ function scene:show(event)
     if (phase == "did") then
         fizikler.start()
         Runtime:addEventListener("collision", carpisma)
+        hareketSonZamani = nil
+        Runtime:addEventListener("enterFrame", hareketDongu)
         Runtime:addEventListener("enterFrame", oyunDongu)
 
         --start müzik
@@ -472,6 +532,8 @@ end
 function scene:hide(event)
     local phase = event.phase
     if (phase == "will") then
+        hareketYon = 0
+        Runtime:removeEventListener("enterFrame", hareketDongu)
         Runtime:removeEventListener("enterFrame", oyunDongu)
         oncekiKareZamani = nil
         if oyunBittiZamanlayici then
