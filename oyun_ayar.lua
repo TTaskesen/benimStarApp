@@ -3,17 +3,17 @@ local M = {}
 
 M.levels = {
     [1] = {
-        hedef = 30, dalgaSayisi = 3, dalgaBasina = 10,
+        hedef = 50, dalgaSayisi = 5, dalgaBasina = 10,
         hizBaslangic = 1.0, hizArtis = 0.02, hizTavan = 1.8,
         meteorAraligi = 500,
     },
     [2] = {
-        hedef = 45, dalgaSayisi = 3, dalgaBasina = 15,
+        hedef = 75, dalgaSayisi = 5, dalgaBasina = 15,
         hizBaslangic = 1.15, hizArtis = 0.025, hizTavan = 2.0,
         meteorAraligi = 470,
     },
     [3] = {
-        hedef = 60, dalgaSayisi = 4, dalgaBasina = 15,
+        hedef = 100, dalgaSayisi = 5, dalgaBasina = 20,
         meteorAraligi = 650,
     },
     [4] = {

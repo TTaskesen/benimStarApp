@@ -469,7 +469,8 @@ function scene:create(event)
     canMetin.anchorX = 0
     skorMetin = display.newText(uiGroup, "", left + width - 12, top + 48, native.systemFont, 22)
     skorMetin.anchorX = 1
-    bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 126, native.systemFont, 18)
+    -- Geri düğmesi ayrı satırda; bölüm HUD'ı düğmenin altına alınır.
+    bolumMetin = display.newText(uiGroup, "", left + width * 0.5, top + 148, native.systemFont, 18)
     geriButon = display.newRoundedRect(uiGroup, left + 58, top + 92, 100, 52, 14)
     geriButon:setFillColor(0.16, 0.24, 0.38, 0.92)
     geriButon:addEventListener("tap", gotoMenu)

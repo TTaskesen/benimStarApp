@@ -18,7 +18,7 @@ Meteorları vur, hareketli duvarlardan kaç ve dört bölümü tamamla!
 
 Yıldız Savaşı'nda gemini sürükle, meteorları isabetli atışlarla yok et ve bölüm bölüm zorlaşan uzay parkurunda hayatta kal.
 
-Her bölüm dalgalara ayrılır. Seri isabetlerle kombonu büyüt, daha yüksek skor kazan ve yerel başarımları aç. Bölüm 4'te aşağı doğru hareket eden duvarların boşluklarından geçerken meteor saldırılarını da yönet.
+Her bölüm dalgalara ayrılır: Bölüm 1'de 50, Bölüm 2'de 75 ve Bölüm 3'te 100 meteor hedeflenir. Seri isabetlerle kombonu büyüt, daha yüksek skor kazan ve yerel başarımları aç. Bölüm 4'te aşağı doğru hareket eden duvarların boşluklarından geçerken meteor saldırılarını da yönet.
 
 Oyunda hesap, reklam, takip veya çevrimiçi bağlantı gerekmez. Bölüm ilerlemesi, skor ve ses tercihi cihazında saklanır. Çoklu lazer, kalkan ve yavaşlatma güçlendiricilerini doğru zamanda kullan.
 
@@ -47,6 +47,8 @@ Final AAB içeriği ve kullanılan kütüphaneler incelenmeden bu beyan Play Con
 
 - Kullanıcı kontrollü upload keystore ile imzalı AAB üret.
 - `jarsigner -verify -verbose -certs` ile debug imzası olmadığını doğrula.
+- AAB manifestinde `targetSdkVersion` değerinin güncel Play şartını karşıladığını ve paket adının Play Console'daki uygulama ile aynı olduğunu doğrula.
+- `versionCode` değerini her yeni yüklemede artır; kaynakta başlangıç değeri `1` olarak tutulur.
 - Gerçek Android ve iPhone cihazlarında safe area, çoklu dokunma, arka plana alma ve uzun oynanış testlerini tamamla.
 - Play Console'da içerik derecelendirmesi, hedef kitle, veri güvenliği ve gizlilik politikası URL'sini doldur.
 - Gerçek cihaz ekran görüntülerini ve Bölüm 4 oynanış videosunu ekle.

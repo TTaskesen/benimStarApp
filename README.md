@@ -15,9 +15,9 @@ Solar2D ile geliştirilen, yalnızca dikey modda çalışan mobil uzay oyunu. Oy
 
 | Bölüm | Hedef meteor | Dalga | Özel kural |
 | --- | ---: | ---: | --- |
-| 1 | 30 | 3 | Temel meteor akışı |
-| 2 | 45 | 3 | Artan meteor hızı |
-| 3 | 60 | 4 | Duvarsız meteor bölümü |
+| 1 | 50 | 5 | Temel meteor akışı |
+| 2 | 75 | 5 | Artan meteor hızı |
+| 3 | 100 | 5 | Duvarsız meteor bölümü |
 | 4 | 75 | 5 | Aşağı inen duvarlar ve güçlendirmeler |
 
 Bölüm 4 duvarlarının iniş hızı %40 azaltılmış, duvarlar arasındaki süre üç katına çıkarılmıştır.
@@ -56,6 +56,7 @@ luac -p *.lua
 ## Gizlilik ve iletişim
 
 - Gizlilik politikası: <https://ttaskesen.github.io/benimStarApp/privacy-policy/>
+- Google Play yayın kontrolü: [GOOGLE_PLAY_RELEASE.md](GOOGLE_PLAY_RELEASE.md)
 - Geliştirici: **Taskesen**
 - E-posta: **taskesen@msn.com**
 
@@ -63,4 +64,4 @@ Oyun kişisel veri toplamaz; kayıtlar cihazın yerel depolamasında tutulur.
 
 ## Sürüm
 
-Mevcut geliştirme sürümü: **v0.0.8**
+Mevcut geliştirme sürümü: **v0.0.9**
