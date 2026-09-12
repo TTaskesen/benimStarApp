@@ -24,11 +24,17 @@ Oyunda hesap, reklam, takip veya çevrimiçi bağlantı gerekmez. Bölüm ilerle
 
 ## Görsel ve video planı
 
-1. Menü: logo, “Meteorları vur • Duvarlardan kaç” alt başlığı ve ana düğmeler.
-2. Bölüm 1: gemi hareketi, ateş düğmesi ve ilk kombo.
-3. Bölüm 3: “Meteorları vur, duvarlardan kaç.” hedef HUD'ı.
-4. Bölüm 4: aşağı inen hareketli duvarlar ve güçlendirici.
-5. Sonuç ekranı: skor, isabet oranı, kombo ve tekrar oynama düğmeleri.
+Play Console'ın Grafikler bölümüne yüklemek üzere hazırlanan dosyalar:
+
+| Alan | Dosya | Boyut | Alt metin / açıklama |
+| --- | --- | --- | --- |
+| Uygulama simgesi | `store-assets/app-icon-512.png` | 512×512 PNG, alfa | Yıldız Savaşı yıldız ve gemi simgesi |
+| Öne çıkan görsel | `store-assets/feature-graphic-1024x500.png` | 1024×500 RGB PNG | Yıldız Savaşı uzay oyunu; meteorlar, gemi ve aşağı hareket eden duvarlar |
+| Telefon ekranı 1 | `store-assets/android-phone/screenshot-01-menu-1080x1920.png` | 1080×1920 RGB PNG | Yıldız Savaşı ana menüsü ve oyun seçenekleri |
+| Telefon ekranı 2 | `store-assets/android-phone/screenshot-02-bolum1-1080x1920.png` | 1080×1920 RGB PNG | Bölüm 1'de gemi, meteorlar, skor ve ateş kontrolü |
+| Telefon ekranı 3 | `store-assets/android-phone/screenshot-03-bolum4-1080x1920.png` | 1080×1920 RGB PNG | Bölüm 4'te aşağı inen duvarlar, meteorlar ve güçlendirici |
+
+Görseller mevcut oyunun arka plan, logo, gemi, meteor ve kontrol varlıklarıyla hazırlanmıştır. Play yüklemesinden önce aynı sahneleri gerçek imzalı AAB'nin gerçek Android cihazından yeniden yakalayıp ilk üç ekran görüntüsünün yerine koymak gerekir; cihaz çerçevesi veya bildirim çubuğu kullanılmamalıdır.
 
 Ekran görüntüleri gerçek cihazdan alınmalı; Simulator görüntüleri mağaza görseli olarak kullanılmamalıdır.
 
@@ -40,6 +46,8 @@ Ekran görüntüleri gerçek cihazdan alınmalı; Simulator görüntüleri mağa
 - Reklam/analiz/takip SDK'sı: Yok.
 - Oyun kayıtları: Yalnızca cihaz içi yerel JSON depolaması.
 - Ağ aktarımı: Oyun döngüsünde yok.
+
+Play Console Veri güvenliği formu için önerilen ilk yanıt: **Veri toplanmıyor** ve **Veri paylaşılmıyor**. Bu seçim yalnızca mevcut AAB ve tüm üçüncü taraf kütüphaneler incelendikten sonra gönderilmelidir; Google, beyanın uygulama davranışıyla doğru ve eksiksiz olmasını geliştiricinin sorumluluğunda tutar.
 
 Final AAB içeriği ve kullanılan kütüphaneler incelenmeden bu beyan Play Console'da kesinleştirilmemelidir.
 

@@ -9,6 +9,7 @@ Bu belge, Yıldız Savaşı için kaynak kodunda tamamlanan kontrolleri ve AAB y
 - Android ve iOS uygulama simgesi var; Android adaptive icon kaynakları da projede bulunuyor.
 - Ağ izni, reklam, analiz ve takip SDK'sı yok.
 - Gizlilik politikası URL'si yayında ve HTTP 200 dönüyor: <https://ttaskesen.github.io/benimStarApp/privacy-policy/>.
+- Play Store yükleme paketi hazırlandı: `store-assets/` altında 512×512 simge, 1024×500 öne çıkan görsel ve 1080×1920 dikey ekran görselleri bulunuyor.
 - `luac -p *.lua` ve `git diff --check` kontrolleri geçiyor.
 - Android `versionCode` kaynakta sayısal `1` olarak tutuluyor; her Play güncellemesinde artırılmalı.
 
@@ -22,8 +23,14 @@ Bu belge, Yıldız Savaşı için kaynak kodunda tamamlanan kontrolleri ve AAB y
 6. Play Console'da içerik derecelendirmesi, hedef kitle, reklam beyanı, Veri güvenliği formu, mağaza görselleri ve gizlilik politikası bağlantısı tamamlanmalı.
 7. Yeni kişisel geliştirici hesabında kapalı test şartı varsa 12 test kullanıcısı 14 gün boyunca katılımcı tutulmadan üretim erişimi alınmamalı.
 
-3 Eylül 2026 itibarıyla Google Play, yeni uygulama ve güncellemelerde Android 16 (API 36) veya üstünü hedefliyor. Bu nedenle Solar2D sürümünün ürettiği gerçek AAB manifesti yükleme öncesi mutlaka incelenmeli.
+12 Eylül 2026 itibarıyla Google Play, yeni uygulama ve güncellemelerde Android 16 (API 36) veya üstünü hedefliyor. Bu nedenle Solar2D sürümünün ürettiği gerçek AAB manifesti yükleme öncesi mutlaka incelenmeli.
 
 ## Yayın kararı
 
-Kaynak proje mağazaya hazırlanabilir durumda; ancak imzalı AAB, paket adı/target API doğrulaması ve gerçek cihaz/Play Console kanıtı olmadan “yayına hazır” kabul edilmemelidir.
+Kaynak proje mağaza varlıkları ve gizlilik politikası açısından hazırlanabilir durumda; ancak imzalı AAB, paket adı/target API doğrulaması, gerçek cihaz ekran görüntüleri ve Play Console formları tamamlanmadan “yayına hazır” kabul edilmemelidir.
+
+## Güncel resmi doğrulamalar
+
+- [Play Store önizleme varlıkları](https://support.google.com/googleplay/android-developer/answer/9866151): mağaza simgesi 512×512 PNG, öne çıkan görsel 1024×500 ve telefon ekran görüntüleri için boyut/oran kuralları.
+- [Play Data güvenliği formu](https://support.google.com/googleplay/android-developer/answer/10787469): veri toplanmasa bile form ve gizlilik politikası bağlantısı tamamlanmalı.
+- [Android hedef API şartı](https://developer.android.com/google/play/requirements/target-sdk): 31 Ağustos 2026'dan itibaren yeni uygulama ve güncellemeler için Android 16 (API 36) veya üstü.
