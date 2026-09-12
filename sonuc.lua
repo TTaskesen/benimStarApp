@@ -1,9 +1,40 @@
 local composer = require("composer")
 local safeArea = require("safe_area")
 local oyunKayit = require("oyun_kayit")
+local skorKayit = require("skor_kayit")
 
 local scene = composer.newScene()
 local veri
+
+local function finalSkoruIsle()
+    if type(veri) ~= "table" or veri.skorIslendi == true then return end
+    local skor = veri.score
+    if not skorKayit.isValid(skor) then
+        print("[sonuc] Final skor kaydedilmedi: geçersiz sonuç skoru (" .. tostring(skor) .. ").")
+        return
+    end
+    if skorKayit.add(skor) then
+        veri.skorIslendi = true
+    else
+        print("[sonuc] Final skor kaydedilemedi; sonuç ekranı yeniden açılırsa tekrar denenecek.")
+    end
+end
+
+local function sonucVerisiniAl()
+    local yeniVeri = composer.getVariable("sonucVeri")
+    if yeniVeri == nil then return false end
+
+    composer.setVariable("sonucVeri", nil)
+    composer.setVariable("finalSkor", nil)
+    if type(yeniVeri) ~= "table" then
+        print("[sonuc] Sonuç verisi tablo değil; skor işlenmedi.")
+        return false
+    end
+
+    veri = yeniVeri
+    finalSkoruIsle()
+    return true
+end
 
 local function dugme(group, y, yazi, handler)
     local left, _, width = safeArea.bounds()
@@ -33,8 +64,6 @@ local function tekrarOyna()
 end
 
 local function yuksekSkor()
-    local skor = veri and tonumber(veri.score) or 0
-    composer.setVariable("finalSkor", skor)
     composer.setVariable("sonucVeri", nil)
     composer.gotoScene("yuksek_skor", { time = 500, effect = "crossFade" })
     return true
@@ -43,8 +72,11 @@ end
 function scene:create(event)
     local group = self.view
     local left, top, width, height = safeArea.bounds()
-    veri = composer.getVariable("sonucVeri") or {}
+    local ilkVeri = composer.getVariable("sonucVeri")
+    veri = type(ilkVeri) == "table" and ilkVeri or {}
     composer.setVariable("sonucVeri", nil)
+    composer.setVariable("finalSkor", nil)
+    if veri.score ~= nil then finalSkoruIsle() end
 
     local bg = display.newImageRect(group, "background1.png", 800, 1400)
     bg.x, bg.y = display.contentCenterX, display.contentCenterY
@@ -74,8 +106,16 @@ function scene:create(event)
     dugme(group, ilkDugme + 136, "En Yüksek Skorlar", yuksekSkor)
 end
 
-function scene:show(event) end
-function scene:hide(event) end
+function scene:show(event)
+    if event.phase == "will" then
+        sonucVerisiniAl()
+    end
+end
+function scene:hide(event)
+    if event.phase == "did" then
+        composer.removeScene("sonuc")
+    end
+end
 function scene:destroy(event) veri = nil end
 
 scene:addEventListener("create", scene)

@@ -49,7 +49,7 @@ settings =
 	excludeFiles =
 	{
 		-- Exclude unnecessary files for each platform
-		all = { "Icon.png", "Icon-*dpi.png", "Images.xcassets", "main_original.lua", "scene-template.lua", },
+		all = { "Icon.png", "Icon-*dpi.png", "Images.xcassets", "main_original.lua", "scene-template.lua", "*.DS_Store", },
 		android = { "LaunchScreen.storyboardc", },
 	},
 }

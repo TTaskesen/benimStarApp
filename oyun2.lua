@@ -100,6 +100,7 @@ local sagMetin
 local hareketYon = 0
 local hareketHizi = 260
 local hareketSonZamani
+local meteorAraligi = 500
 
 --oyun gruplarının oluşturulması
 local arkaPlanGroup --arkaplan resimlerinin gurubu
@@ -430,6 +431,11 @@ function scene:create(event)
     end
     ayar = oyunAyar.level(2)
     hedefVurus = ayar.hedef
+    meteorAraligi = tonumber(ayar.meteorAraligi)
+    if not meteorAraligi or meteorAraligi <= 0 then
+        meteorAraligi = 500
+        print("[oyun2] Geçersiz meteor aralığı; güvenli varsayılan 500 ms kullanılıyor.")
+    end
     hizCarpani = ayar.hizBaslangic
     sonLazerZamani = 0
     atisSayisi = 0
@@ -529,7 +535,11 @@ function scene:show(event)
         Runtime:addEventListener("collision", carpisma)
         hareketSonZamani = nil
         Runtime:addEventListener("enterFrame", hareketDongu)
-        oyundonguzamani = timer.performWithDelay(500, oyunDongu, 0)
+        if oyundonguzamani then
+            timer.cancel(oyundonguzamani)
+            oyundonguzamani = nil
+        end
+        oyundonguzamani = timer.performWithDelay(meteorAraligi, oyunDongu, 0)
 
         --start müzik
         audio.play(muzikYukleme, { channel = 1, loops = -1 })
@@ -545,7 +555,10 @@ function scene:hide(event)
         -- Code here runs when the scene is on screen (but is about to go off screen)
         hareketYon = 0
         Runtime:removeEventListener("enterFrame", hareketDongu)
-        if oyundonguzamani then timer.cancel(oyundonguzamani) end
+        if oyundonguzamani then
+            timer.cancel(oyundonguzamani)
+            oyundonguzamani = nil
+        end
         if oyunBittiZamanlayici then
             timer.cancel(oyunBittiZamanlayici)
             oyunBittiZamanlayici = nil
