@@ -233,7 +233,7 @@ local function hareketGemi(event)
     --dokunma odaklanması
     if ("began" == faz) then
         --dokunma odaklanması
-        display.currentStage:setFocus(gemi)
+        display.currentStage:setFocus(gemi, event.id)
         --başlangıç ofset pozisyonu
         gemi.touchOffsetX = event.x - gemi.x
         --gemi.touchOffset = event.y - gemi.y
@@ -250,7 +250,7 @@ local function hareketGemi(event)
         --gemi.y= event.y - gemi.touchOffsetY
     elseif ("ended" == faz or "cancelled" == faz) then
         --odaklanmanın boşa çıkması
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(gemi, nil)
     end
     return true
 end
@@ -259,10 +259,10 @@ local function hareketTusDokunma(event)
     if bolumGecisiAktif then return true end
     if event.phase == "began" then
         hareketYon = event.target.hareketYon
-        display.currentStage:setFocus(event.target)
+        display.currentStage:setFocus(event.target, event.id)
     elseif event.phase == "ended" or event.phase == "cancelled" then
         if hareketYon == event.target.hareketYon then hareketYon = 0 end
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(event.target, nil)
     end
     return true
 end

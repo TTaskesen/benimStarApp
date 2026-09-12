@@ -212,7 +212,7 @@ local function hareketGemi(event)
     if bolumGecisiAktif then return true end
     if ("began" == faz) then
         --dokunma odaklanması
-        display.currentStage:setFocus(gemi)
+        display.currentStage:setFocus(gemi, event.id)
         gemi.touchOffsetX = event.x - gemi.x
         gemi.touchOffsetY = event.y - gemi.y
     elseif ("moved" == faz) then
@@ -233,7 +233,7 @@ local function hareketGemi(event)
         local altSinir = display.contentHeight - 250
         gemi.y = math.max(ustSinir, math.min(altSinir, event.y - gemi.touchOffsetY))
     elseif ("ended" == faz or "cancelled" == faz) then
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(gemi, nil)
     end
     return true
 end
@@ -242,10 +242,10 @@ local function hareketTusDokunma(event)
     if bolumGecisiAktif then return true end
     if event.phase == "began" then
         hareketYon = event.target.hareketYon
-        display.currentStage:setFocus(event.target)
+        display.currentStage:setFocus(event.target, event.id)
     elseif event.phase == "ended" or event.phase == "cancelled" then
         if hareketYon == event.target.hareketYon then hareketYon = 0 end
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(event.target, nil)
     end
     return true
 end

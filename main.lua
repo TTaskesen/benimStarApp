@@ -9,6 +9,10 @@ local oyunKayit = require("oyun_kayit")
 
 display.setStatusBar(display.HiddenStatusBar)
 
+-- Gerçek cihazlarda hareket ve ateş düğmelerine aynı anda basılabilmesi için
+-- çoklu dokunmayı etkinleştir. Her sahne dokunma odağını event.id ile ayırır.
+system.activate("multitouch")
+
 --random sayı üretme tohumu oluştur
 math.randomseed(os.time())
 

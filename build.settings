@@ -19,7 +19,9 @@ settings =
 	android =
 	{
 		-- Play Console sürümlerini ayırt eden artan Android sürüm kodu.
-		versionCode = 1,
+		versionCode = "1",
+		-- Google Play kapalı test yükleyicisi API 21 ve üzerini gerektirir.
+		minSdkVersion = "21",
 	},
 
 	--

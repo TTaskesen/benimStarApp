@@ -56,7 +56,7 @@ Final AAB içeriği ve kullanılan kütüphaneler incelenmeden bu beyan Play Con
 - Kullanıcı kontrollü upload keystore ile imzalı AAB üret.
 - `jarsigner -verify -verbose -certs` ile debug imzası olmadığını doğrula.
 - AAB manifestinde `targetSdkVersion` değerinin güncel Play şartını karşıladığını ve paket adının Play Console'daki uygulama ile aynı olduğunu doğrula.
-- `versionCode` değerini her yeni yüklemede artır; kaynakta başlangıç değeri `1` olarak tutulur.
+- `versionCode` değerini her yeni yüklemede artır; kaynakta başlangıç değeri `"1"` olarak tutulur.
 - Gerçek Android ve iPhone cihazlarında safe area, çoklu dokunma, arka plana alma ve uzun oynanış testlerini tamamla.
 - Play Console'da içerik derecelendirmesi, hedef kitle, veri güvenliği ve gizlilik politikası URL'sini doldur.
 - Gerçek cihaz ekran görüntülerini ve Bölüm 4 oynanış videosunu ekle.

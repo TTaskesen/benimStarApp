@@ -250,7 +250,7 @@ end
 local function hareketGemi(event)
     local hedef = event.target
     if event.phase == "began" then
-        display.currentStage:setFocus(hedef)
+        display.currentStage:setFocus(hedef, event.id)
         hedef.touchOffsetX = event.x - hedef.x
         hedef.touchOffsetY = event.y - hedef.y
     elseif event.phase == "moved" then
@@ -264,7 +264,7 @@ local function hareketGemi(event)
         local altSinir = display.contentHeight - 250
         hedef.y = math.max(ustSinir, math.min(altSinir, event.y - hedef.touchOffsetY))
     elseif event.phase == "ended" or event.phase == "cancelled" then
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(hedef, nil)
     end
     return true
 end
@@ -272,10 +272,10 @@ end
 local function hareketTusDokunma(event)
     if event.phase == "began" then
         hareketYon = event.target.hareketYon
-        display.currentStage:setFocus(event.target)
+        display.currentStage:setFocus(event.target, event.id)
     elseif event.phase == "ended" or event.phase == "cancelled" then
         if hareketYon == event.target.hareketYon then hareketYon = 0 end
-        display.currentStage:setFocus(nil)
+        display.currentStage:setFocus(event.target, nil)
     end
     return true
 end
