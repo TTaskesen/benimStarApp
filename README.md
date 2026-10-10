@@ -70,4 +70,4 @@ Oyun kişisel veri toplamaz; kayıtlar cihazın yerel depolamasında tutulur.
 
 ## Sürüm
 
-Mevcut geliştirme sürümü: **v0.0.11**
+Mevcut geliştirme sürümü: **v0.0.15**
