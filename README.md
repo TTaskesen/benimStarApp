@@ -9,6 +9,11 @@ Solar2D ile geliştirilen, yalnızca dikey modda çalışan mobil uzay oyunu. Oy
 - Meteorları vurarak skor ve kombo kazanılır.
 - Gemi meteor veya duvarla çarpıştığında bir can kaybeder ve kısa bir tamir sürecine girer.
 - Bölüm tamamlanınca sonraki bölüm otomatik açılır.
+- Yeni Oyun ekranında üç gemiden biri seçilir; gemilerin lazer dolum hızları ve görsel renkleri farklıdır.
+- Kozmik Komutan hızlı ve düz Y ekseni lazeri kullanır; tüm gemilerde temel lazer atışı güvenlidir.
+- Meteorların dönme hızı artırılmıştır; her 10 saniyede bir küçük düşman gemisi yukarıdan gelir ve aşağı doğru ateş eder.
+- Düşman gemileri lazerle vurulabilir; her biri sabit 150 puan verir ve üç renkten bir `+` bonusu bırakır: mavi daha hızlı lazer, yeşil ek can, sarı 8 saniyelik kalkan sağlar.
+- Bölüm 4'te 75 meteor tamamlandıktan sonra hareket eden bir boss ortaya çıkar; boss yenilmeden oyun bitmez.
 - Yerel kayıt, yüksek skorlar, başarımlar ve günlük görevler cihazda tutulur.
 
 ## Bölümler
@@ -46,6 +51,7 @@ luac -p *.lua
 
 - `main.lua`: Uygulama başlangıcı ve genel ses ayarı.
 - `menu.lua`: Ana menü ve oyun seçenekleri.
+- `gemi_sec.lua`, `gemi_secimi.lua`: Yeni oyun gemi seçimi ve gemi denge ayarları.
 - `oyun.lua` – `oyun4.lua`: Bölüm oynanışları.
 - `oyun_ayar.lua`: Bölüm hedefleri ve denge ayarları.
 - `oyun_kayit.lua`: Yerel devam kaydı.

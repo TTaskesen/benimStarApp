@@ -26,9 +26,16 @@ local function makeButton(group, label, y, handler)
 end
 
 local function yeniOyun()
+    -- Composer, daha önce açılmış oyun sahnelerini önbellekte tutabildiği
+    -- için yeni oyunda eski skor/gemi durumunun geri taşınmasını engelle.
+    for _, sceneName in ipairs({ "oyun", "oyun2", "oyun3", "oyun4" }) do
+        sahne_degis.removeScene(sceneName)
+    end
     oyunKayit.clear()
     sahne_degis.setVariable("devamKaydi", nil)
-    sahne_degis.gotoScene("oyun", { time = 500, effect = "crossFade" })
+    sahne_degis.setVariable("aktarilanSkor", nil)
+    sahne_degis.setVariable("gemiSecimi", nil)
+    sahne_degis.gotoScene("gemi_sec", { time = 500, effect = "crossFade" })
     return true
 end
 

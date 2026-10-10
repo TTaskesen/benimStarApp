@@ -1,4 +1,5 @@
 local json = require("json")
+local gemiSecimi = require("gemi_secimi")
 
 local M = {}
 local VERSION = 1
@@ -15,6 +16,7 @@ local function varsayilan()
         lives = 3,
         progress = 0,
         soundEnabled = true,
+        gemi = gemiSecimi.defaultId(),
     }
 end
 
@@ -39,6 +41,7 @@ local function dogrula(data)
     temiz.level = sayi(data.level, 1, 1, 4)
     temiz.lives = sayi(data.lives, 3, 0, 9)
     temiz.progress = sayi(data.progress, 0, 0, 200)
+    temiz.gemi = gemiSecimi.normalize(data.gemi)
     if type(data.soundEnabled) == "boolean" then
         temiz.soundEnabled = data.soundEnabled
     end
