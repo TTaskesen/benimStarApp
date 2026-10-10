@@ -518,9 +518,7 @@ end
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
 
--- create()
-function scene:create(event)
-    local sceneGroup = self.view
+local function initializeSceneState()
     local devamKaydi = sahne_degis.getVariable("devamKaydi")
     sahne_degis.setVariable("devamKaydi", nil)
     local aktarilanSkor = sahne_degis.getVariable("aktarilanSkor")
@@ -564,7 +562,9 @@ function scene:create(event)
     oyunKayit.setProvider(function()
         return { version = 1, valid = aktif or bolumGecisZamanlayici ~= nil, score = skor, level = 3, lives = canlar, progress = yapilanVurus, soundEnabled = sesAcik, gemi = gemiTipi }
     end)
+end
 
+local function createSceneView(sceneGroup)
     fizikler.pause()
 
     arkaPlanGroup = display.newGroup()
@@ -638,6 +638,12 @@ function scene:create(event)
     patlamaSesi = audio.loadSound("audio/explosion.wav")
     lazerAtesSesi = audio.loadSound("audio/fire.wav")
     muzikYukleme = audio.loadStream("audio/80s-Space-Game_Looping.wav")
+end
+
+-- create()
+function scene:create(event)
+    initializeSceneState()
+    createSceneView(self.view)
 end
 
 -- show()
