@@ -20,9 +20,9 @@ settings =
 	{
 		-- Play Console sürümlerini ayırt eden artan Android sürüm kodu.
 		-- Play'deki 1 (0.0.10) sürümünden sonraki güncelleme.
-		versionCode = "3",
+		versionCode = "4",
 		-- Android mağaza görünen sürümü; versionCode ile birlikte AAB'ye yazılır.
-		versionName = "0.0.15",
+		versionName = "0.0.16",
 		-- Google Play otomatik koruma koşulu için API 24 ve üzeri.
 		minSdkVersion = "24",
 	},
