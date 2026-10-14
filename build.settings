@@ -21,6 +21,8 @@ settings =
 		-- Play Console sürümlerini ayırt eden artan Android sürüm kodu.
 		-- Play'deki 1 (0.0.10) sürümünden sonraki güncelleme.
 		versionCode = "3",
+		-- Android mağaza görünen sürümü; versionCode ile birlikte AAB'ye yazılır.
+		versionName = "0.0.15",
 		-- Google Play otomatik koruma koşulu için API 24 ve üzeri.
 		minSdkVersion = "24",
 	},
@@ -33,6 +35,12 @@ settings =
 		xcassets = "Images.xcassets",
 		plist =
 		{
+			-- App Store Connect'in güncel iOS yükleme gereksinimi.
+			MinimumOSVersion = "15.0",
+			-- Bundle içi çalıştırılabilir adını ASCII tutarak iOS imza mühürlemesini
+			-- Türkçe karakter normalizasyonundan koru; kullanıcıya görünen ad
+			-- App Store Connect'teki "Yıldız Savaşı" olarak kalır.
+			CFBundleDisplayName = "Yıldız Savaşı",
 			UIStatusBarHidden = false,
 			UILaunchStoryboardName = "LaunchScreen",
 		},
@@ -52,7 +60,7 @@ settings =
 	excludeFiles =
 	{
 		-- Exclude unnecessary files for each platform
-		all = { "Icon.png", "Icon-*dpi.png", "Images.xcassets", "main_original.lua", "scene-template.lua", "*.DS_Store", },
+		all = { "Icon.png", "Icon-*dpi.png", "Images.xcassets", "main_original.lua", "scene-template.lua", "*.DS_Store", ".git", ".git/*", ".git/**", },
 		android = { "LaunchScreen.storyboardc", },
 	},
 }

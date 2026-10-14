@@ -57,7 +57,8 @@ Final AAB içeriği ve kullanılan kütüphaneler incelenmeden bu beyan Play Con
 - `jarsigner -verify -verbose -certs` ile debug imzası olmadığını doğrula.
 - AAB manifestinde `targetSdkVersion` değerinin güncel Play şartını karşıladığını ve paket adının Play Console'daki uygulama ile aynı olduğunu doğrula.
 - `versionCode` değerini her yeni yüklemede artır; mevcut güncelleme için kaynak değeri `"3"` olarak tutulur.
-- Solar2D Build ekranında uygulama adı `Yıldız Savaşı`, sürüm adı `0.0.14` ve paket adı `com.taskesen.yildizsavasi` olmalıdır.
+- Solar2D Build ekranında uygulama adı `Yıldız Savaşı`, sürüm adı `0.0.15` ve paket adı `com.taskesen.yildizsavasi` olmalıdır.
+- Destek e-postası: `taskesen@msn.com`; geliştirici adı: `Taskesen`.
 - Gerçek Android ve iPhone cihazlarında safe area, çoklu dokunma, arka plana alma ve uzun oynanış testlerini tamamla.
 - Play Console'da içerik derecelendirmesi, hedef kitle, veri güvenliği ve gizlilik politikası URL'sini doldur.
 - Gerçek cihaz ekran görüntülerini ve Bölüm 4 oynanış videosunu ekle.

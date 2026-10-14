@@ -12,11 +12,11 @@ Bu belge, Yıldız Savaşı için kaynak kodunda tamamlanan kontrolleri ve AAB y
 - Play Store yükleme paketi hazırlandı: `store-assets/` altında 512×512 simge, 1024×500 öne çıkan görsel ve 1080×1920 dikey ekran görselleri bulunuyor.
 - `luac -p *.lua` ve `git diff --check` kontrolleri geçiyor.
 - Android `versionCode` kaynakta bir sonraki güncelleme için dize biçiminde `"3"` olarak tutuluyor; sonraki her Play yüklemesinde artırılmalı.
-- Mevcut Play sürümü `versionCode=2`, `versionName=0.0.11`; yeni AAB oluştururken uygulama adı `Yıldız Savaşı`, sürüm kodu `3` ve sürüm adı `0.0.14` seçilmeli.
+- Yeni AAB için kaynakta uygulama adı `Yıldız Savaşı`, sürüm kodu `3` ve sürüm adı `0.0.15` tanımlı.
 
 ## AAB yüklemeden önce zorunlu kapılar
 
-1. Solar2D Build for Android ekranında uygulama adı **Yıldız Savaşı**, sürüm adı `0.0.14`, sürüm kodu `3`, benzersiz paket adı ve **Google Play / Android App Bundle** hedefi seçilmeli.
+1. Solar2D Build for Android ekranında uygulama adı **Yıldız Savaşı**, sürüm adı `0.0.15`, sürüm kodu `3`, paket adı `com.taskesen.yildizsavasi` ve **Google Play / Android App Bundle** hedefi seçilmeli.
 2. Kullanıcının kendi upload keystore'u ile imzalı AAB üretilmeli. Keystore ve parolalar depoya konulmamalı.
 3. AAB manifesti incelenerek `targetSdkVersion` güncel Play şartını karşılamalı ve paket adı Play Console'daki uygulamayla aynı olmalı.
 4. `jarsigner -verify -verbose -certs app-release.aab` çıktısında debug sertifikası bulunmamalı.
